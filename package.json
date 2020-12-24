@@ -1,0 +1,15 @@
+{
+  "name": "wod-server",
+  "version": "1.0.0",
+  "description": "web on device application",
+  "main": "wod-index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "hecc",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.17.1",
+    "faye-websocket": "^0.11.3"
+  }
+}

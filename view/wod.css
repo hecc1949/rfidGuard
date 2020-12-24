@@ -1,0 +1,59 @@
+body {
+    font-family: msyh,arial,sans-serif;
+    padding:20px;
+    font-size:16px;
+    margin:0;
+}
+
+#banner  {
+    background-image:url('images/backgp2.png'); 
+    color:greenyellow;
+    font-size:2.0em;
+    font-family: msyh;
+    margin:0;
+    margin-bottom:10px;
+    text-align: center; 
+    height:60px;        /* 1280 =50px   */
+    margin-top:5px;
+    margin-bottom:5px;
+}
+
+.easyui-linkbutton  {
+    height: 36px;
+    margin: 5px;
+}
+
+.easyui-linkbutton .l-btn-text {
+    font-size: 1.2em;
+    color:blue;
+}
+
+.panel-title    {
+    font-size: 1.1em;
+    font-weight: normal;
+}
+
+.datagrid-header .datagrid-cell span,
+.datagrid-cell,
+.datagrid-cell-group,
+.datagrid-header-rownumber,
+.datagrid-cell-rownumber    {
+    font-size: 1.0em;
+    font-weight: normal;
+    font-family: msyh;
+}
+
+.tabs-title   {
+    font-size: 1.2em;
+    font-family: msyh;
+}
+
+.pagination-link .l-btn-text, .pagination-info {
+    font-size: 1.2em;
+    font-weight: normal;
+    font-family: msyh;
+}
+
+.textbox .textbox-text, .textbox .l-btn-text  {
+    font-size: 1.2em;
+}

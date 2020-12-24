@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />       
+        <title> Web on Device界面 </title>
+        <!-- jquery easyui import -->
+        <script type="text/javascript" src="jquery.min.js"></script>
+        <script type="text/javascript" src="jquery.easyui.min.js"></script>
+        <script type="text/javascript" src="easyui-lang-zh_CN.js"></script>        
+        <link rel="stylesheet" type="text/css" href="easyui.css">
+        <link rel="stylesheet" type="text/css" href="icon.css">
+        <link rel="stylesheet" type="text/css" href="wod.css">
+        <script type="text/javascript" src="wod-rfidmon.js"></script>        
+        <style>
+        </style>
+        <script type="text/javascript">        
+        </script>
+    </head>
+    <body class="easyui-layout">
+        <div id="banner" data-options="region:'north',border:false" >
+            UHF-RFID门禁设备
+        </div>
+        <div data-options="region:'east',split:true,title:'控制面板'" style="width:350px;padding:5px;">
+            <div id="ctrlPanelA" class="easyui-panel" title="直接控制" style="width:100%; padding:0px;" >
+                <a id="stopAlarm" href="#" class="easyui-linkbutton" data-options="iconCls:'icon-search'"
+                    style="width:40%; ">关警报</a> <br/>
+                <a id="foredOpen" href="#" class="easyui-linkbutton" data-options="iconCls:'icon-write'"
+                    style="width:40%; ">临时放行</a>
+                <input id="openTime" class="easyui-combobox" style="width:50%;" data-options="
+                        data: [{value:'1',text:'1'},
+                            {value:'2',text:'2'},
+                            {value:'3',text:'3',selected:true},
+                            {value:'4',text:'4',},
+                            {value:'5',text:'5',}
+                        ],
+                    editable: false, panelHeight: 'auto',
+                    label: '时间(分钟)', labelPosition: 'left', labelAlign:'right', labelWidth:'80px' ">                    
+            </div> 
+            <div id="ctrlPanelB" class="easyui-panel" title="授权通行" style="width:100%; padding:5px;" >
+                <div id="checkoutList" class="easyui-datalist" title="当前可通行" style="width:100%; height:350px;" 
+                    data-options="url: '', method: 'get', singleSelect: false"></div> 
+                <a id="clearCheckout" href="#" class="easyui-linkbutton" data-options="iconCls:'icon-write'"
+                    style="width:40%; margin-top:5px">清除</a>
+                <input id="addCheckout" class="easyui-textbox" data-options="buttonText:'授权号码:', buttonAlign:'left', 
+                    buttonIcon:'icon-search', iconWidth:'36px'" style="width:100%;height:36px">
+            </div>
+            <a id="sysClose" href="#" class="easyui-linkbutton" data-options="iconCls:'icon-write'"
+                style="width:45%; margin-top: 20px">关机</a>
+        </div>
+        <!-- 内容显示区 -->
+        <div data-options="region:'center'">
+            <div id="tabsWorksheet" class="easyui-tabs"  data-options="tabPosition:'left'" 
+                style="width:100%;height:95%;">
+                <!-- tabs page-1，报警事务-->
+                <div title="报警" data-options="iconCls:'icon-tip',closable:true" style="padding:10px">
+                    <table id="tabAlarm" class="easyui-datagrid" title="报警记录表"  fitcolumns="true" 
+                        style="height:80%; width: 100%"
+                        data-options="singleSelect:true,rownumbers:true,collapsible:true, 
+                            autoRowHeight:false,striped:true,
+                            pagination:true, pageSize:20, 
+                            url:'',method:'get' " >
+                        <thead>
+                        <tr>
+                        <th data-options="field:'itemid',width:50">ID</th>
+                        <th data-options="field:'eventTime',width:120">格式</th>
+                        <th data-options="field:'epc',width:250">标签号(EPC)</th>
+                        <th data-options="field:'context',width:180">内容(条码)</th>
+                        <th data-options="field:'event',width:80">事件</th>
+                        <th data-options="field:'result',width:80">处理</th>
+                        <th data-options="field:'closeTime',width:120">关闭时间</th>
+                        </tr>
+                        </thead>
+                    </table>
+                    <div class="easyui-panel" title=" " style="width:100%; padding:10px 10px;">
+                        <a id="btnAlarmDataDownld" href="#" class="easyui-linkbutton" data-options="iconCls:'icon-save'"
+                                style="width:25%;height:36px; margin-top:0px; margin-bottom:0px;">下载数据</a>
+                    </div>
+                </div>
+                <!-- tabs page-2，一般事件记录-->
+                <div title="事件记录" data-options="iconCls:'icon-dbsettings',closable:true" style="padding:10px">
+                        <table id="tabChecks" class="easyui-datagrid" title="事件记录表"  fitcolumns="true" 
+                        style="height:80%; width: 100%"
+                        data-options="singleSelect:true,rownumbers:true,collapsible:true, 
+                            autoRowHeight:false,striped:true,
+                            pagination:true, pageSize:20, 
+                            url:'',method:'get' " >
+                        <thead>
+                        <tr>
+                        <th data-options="field:'itemid',width:50">ID</th>
+                        <th data-options="field:'event',width:80">事件</th>
+                        <th data-options="field:'eventTime',width:120">时间</th>
+                        <th data-options="field:'epc',width:250">标签号(EPC)</th>
+                        <th data-options="field:'context',width:180">内容(条码)</th>
+                        <th data-options="field:'remark',width:80">说明</th>
+                        </tr>
+                        </thead>
+                    </table>
+                    <div class="easyui-panel" title=" " style="width:100%; padding:10px 10px;">
+                        <a id="btnEventReport" href="#" class="easyui-linkbutton" data-options="iconCls:'icon-save'"
+                                style="width:25%;height:36px; margin-top:0px; margin-bottom:0px;">下载数据</a>
+                        <a id="btnEventReset" href="#" class="easyui-linkbutton" data-options="iconCls:'icon-cut'"
+                                style="width:25%;height:36px;">清除数据</a><br/>
+                    </div>
+                </div>
+                <!-- tabs page-3，系统辅助-->
+                <div title="系统配置" data-options="iconCls:'icon-home1',closable:true" style="padding:10px">
+                    <table id="configSettings" class="easyui-propertygrid" style="width:400px" data-options="
+                        showGroup: true, scrollbarSize: 0,
+                        columns: [[
+                            { field: 'name', title: '项目', width: 100, resizable: false },
+                            { field: 'value', title: '属性', width: 280, resizable: true }
+                           ]]">
+                    </table>
+                    <a id="configApply" href="#" class="easyui-linkbutton" data-options="iconCls:'icon-ok'"
+                        style="width:20%;height:36px; margin-top:20px;margin-left:20px">确认</a>
+                </div>
+            </div>                
+        </div>
+        <!-- 状态条 -->
+        <div data-options="region:'south',border:false" style="height:60px;background:#A9FACD;padding:5px;">
+            <input id="netStatus" class="easyui-textbox" data-options="editable:false, 
+                buttonText:'离线', buttonAlign:'left', buttonIcon:'icon-search', iconWidth:'36px',
+                prompt:'192.168.10.21' " style="width:350px;height:40px;">
+            <input id="genClock" class="easyui-textbox" data-options="editable:false" value="12:22"
+                style="width:200px;height:40px;">
+            <input id="runedTimes" class="easyui-textbox" data-options="editable:false" 
+                style="width:400px;height:40px;">
+    
+        </div>      
+    </body>
+</html>
+
