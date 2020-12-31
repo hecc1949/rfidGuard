@@ -1,7 +1,7 @@
+#include <QtWebEngineWidgets>
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
-#include "tinytitlebar.h"
-#include <QtWebEngineWidgets>
+//#include "tinytitlebar.h"
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -14,20 +14,43 @@ MainWindow::MainWindow(QWidget *parent) :
 #else
     setGeometry(0, 0, 1280, 720);
 #endif
-    TinyTitleBar* m_TitleBar = new TinyTitleBar(this);
+//    TinyTitleBar* m_TitleBar = new TinyTitleBar(this);
+//    m_TitleBar->hide();
+
     setWindowTitle("应用窗口");
     setWindowIcon(QIcon(":res/list_bullets_48px.png"));
 //    m_TitleBar->setAutohide(50000);
     ui->statusBar->hide();
 
+
+    localTools = new LocalToolBar(this);
+    addToolBar(localTools);
+    connect(localTools, SIGNAL(onLocalToolsAction(int)), this, SLOT(doLocalManage(int)));
+
     loadWebView();
     QVBoxLayout *layout = new QVBoxLayout;
     layout->setMargin(0);
-    layout->addWidget(m_TitleBar);
+//    layout->addWidget(m_TitleBar);
     layout->addWidget(m_webview);
     centralWidget()->setLayout(layout);
     centralWidget()->setObjectName("workClient");
 //    setCentralWidget(m_webview);
+
+    //网络检测
+    m_netInfo.netStatus = 0;
+    netChecker = new NetworkChecker(NULL);          //手工delete
+    connect(netChecker, &NetworkChecker::sigCheckNetDone, this, [=](NetworkInfo_t netInfo)    {
+        m_netInfo = netInfo;
+    });
+    netChecker->moveToThread(&netmgrThread);
+    netmgrThread.start();
+
+    QTimer *startAppTimer = new QTimer(this);
+    startAppTimer->setSingleShot(true);
+    connect(startAppTimer, &QTimer::timeout, this,[=]() {
+        netChecker->checkNetworkStatus();
+    });
+    startAppTimer->start(2000);
 }
 
 MainWindow::~MainWindow()
@@ -46,6 +69,36 @@ void MainWindow::closeEvent(QCloseEvent *event)
         nodeProc->terminate();
         nodeProc = NULL;
     }
+    while(netmgrThread.isRunning())
+    {
+        netmgrThread.quit();
+        netmgrThread.wait();
+    }
+    delete netChecker;
+
+    if (nodeProc != NULL)
+    {
+        nodeProc->terminate();
+        nodeProc = NULL;
+    }
+
+#ifdef ARM
+    QString tfcardPath = "/media/hcsd";
+    if (QDir("/").exists(tfcardPath))
+    {
+        //卸载TF卡
+        system("sync");
+        system((QString("umount -l %1").arg(tfcardPath)).toLatin1().data());
+    }
+    QString udiskPath = "/media/udisk";
+    if (QDir("/").exists(udiskPath))
+    {
+        //卸载U盘
+        system("sync");
+        system((QString("umount -f %1").arg(udiskPath)).toLatin1().data()); //
+    }
+#endif
+
 }
 
 void MainWindow::loadWebView()
@@ -110,7 +163,7 @@ void MainWindow::loadNodejsServer()
         }
     });
     connect(nodeProc, &QProcess::readyReadStandardError, this, [=]()   {
-//#        qDebug()<<"nodeErr:"<<QString(nodeProc->readAllStandardError());
+        qDebug()<<"nodeErr:"<<QString(nodeProc->readAllStandardError());
     });
 
 
@@ -128,4 +181,9 @@ void MainWindow::loadNodejsServer()
         nodeProc = NULL;
     }
 
+}
+
+void MainWindow::doLocalManage(int cmdId)
+{
+    Q_UNUSED(cmdId);
 }

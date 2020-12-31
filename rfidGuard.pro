@@ -4,7 +4,8 @@
 #
 #-------------------------------------------------
 
-QT       += core gui webenginewidgets webchannel websockets
+QT       += core gui webenginewidgets webchannel \
+    websockets serialport network sql
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -14,18 +15,25 @@ TEMPLATE = app
 VERSION = 0.1.0
 DEFINES += VERSION_STRING=\\\"$${VERSION}\\\"
 
+INCLUDEPATH += $$PWD/../urfidLib/inc
+DEPENDPATH += $$PWD/../urfidLib/inc
+
 if(contains(DEFINES,ARM))   {
     target.path=/usr/rfidguard
     INSTALLS += target
-    usrhtml.path=/usr/rfidguard
+    LIBS += -L$$PWD/../urfidLib-build-arm -lurfid
+    nodefiles.path=/usr/rfidguard
+    viewfiles.path=/usr/rfidguard/view
 }   else    {
-    usrhtml.path = $${OUT_PWD}
+    LIBS += -L$$PWD/../urfidLib-build-pc -lurfid
+    nodefiles.path = $${OUT_PWD}
+    viewfiles.path=$${OUT_PWD}/view
 }
 
-usrhtml.files = wod-index.js view/wod.html view/wod.css view/wod-rfidmon.js
+nodefiles.files = wod-index.js schemetimer.js
+viewfiles.files = view/wod.html view/wod.css view/wod-rfidmon.js view/utils.js view/configs.json
 
-INSTALLS +=usrhtml
-
+INSTALLS +=nodefiles viewfiles
 
 # The following define makes your compiler emit warnings if you use
 # any feature of Qt which has been marked as deprecated (the exact warnings
@@ -42,17 +50,27 @@ DEFINES += QT_DEPRECATED_WARNINGS
 SOURCES += \
         main.cpp \
         mainwindow.cpp \
-    tinytitlebar.cpp \
     webpageview.cpp \
     websocketchannel.cpp \
-    devwrapper.cpp
+    devwrapper.cpp \
+    networkchecker.cpp \
+    localtoolbar.cpp
 
 HEADERS += \
         mainwindow.h    \
-        tinytitlebar.h  \
         webpageview.h \
     websocketchannel.h \
-    devwrapper.h
+    devwrapper.h \
+    networkchecker.h \
+    localtoolbar.h  \
+    ../urfidLib/inc/srcdatformat.h \
+    ../urfidLib/inc/writebooktags.h    \
+    ../urfidLib/inc/dev_r200.h \
+    ../urfidLib/inc/rfidreadermod.hpp  \
+    ../urfidLib/inc/gpiodev.h \
+    ../urfidLib/inc/dbstore.h  \
+    ../urfidLib/inc/inventproxy.h
+
 
 FORMS += \
         mainwindow.ui
@@ -62,4 +80,7 @@ RESOURCES += \
 
 DISTFILES += \
     ReadMe.md \
-    wod-index.js
+    wod-index.js \
+    schemetimer.js \
+    view/configs.json \
+    view/utils.js

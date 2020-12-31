@@ -1,0 +1,9 @@
+<RCC>
+    <qresource prefix="/">
+        <file>res/close_24.png</file>
+        <file>res/list_bullets_48px.png</file>
+        <file>res/close.png</file>
+        <file>res/Save_32.png</file>
+        <file>res/wifi.png</file>
+    </qresource>
+</RCC>

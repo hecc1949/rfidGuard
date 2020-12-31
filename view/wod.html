@@ -10,7 +10,8 @@
         <link rel="stylesheet" type="text/css" href="easyui.css">
         <link rel="stylesheet" type="text/css" href="icon.css">
         <link rel="stylesheet" type="text/css" href="wod.css">
-        <script type="text/javascript" src="wod-rfidmon.js"></script>        
+        <script type="text/javascript" src="utils.js"></script>
+        <script type="text/javascript" src="wod-rfidmon.js"></script>
         <style>
         </style>
         <script type="text/javascript">        
@@ -24,9 +25,9 @@
             <div id="ctrlPanelA" class="easyui-panel" title="直接控制" style="width:100%; padding:0px;" >
                 <a id="stopAlarm" href="#" class="easyui-linkbutton" data-options="iconCls:'icon-search'"
                     style="width:40%; ">关警报</a> <br/>
-                <a id="foredOpen" href="#" class="easyui-linkbutton" data-options="iconCls:'icon-write'"
+                <a id="checkoutOpen" href="#" class="easyui-linkbutton" data-options="iconCls:'icon-write'"
                     style="width:40%; ">临时放行</a>
-                <input id="openTime" class="easyui-combobox" style="width:50%;" data-options="
+                <input id="checkoutTimes" class="easyui-combobox" style="width:50%;" data-options="
                         data: [{value:'1',text:'1'},
                             {value:'2',text:'2'},
                             {value:'3',text:'3',selected:true},
@@ -37,11 +38,12 @@
                     label: '时间(分钟)', labelPosition: 'left', labelAlign:'right', labelWidth:'80px' ">                    
             </div> 
             <div id="ctrlPanelB" class="easyui-panel" title="授权通行" style="width:100%; padding:5px;" >
-                <div id="checkoutList" class="easyui-datalist" title="当前可通行" style="width:100%; height:350px;" 
-                    data-options="url: '', method: 'get', singleSelect: false"></div> 
-                <a id="clearCheckout" href="#" class="easyui-linkbutton" data-options="iconCls:'icon-write'"
+                <div id="passcards" class="easyui-datalist" title="当前可通行" style="width:100%; height:200px;"
+                    data-options="url: 'passcards', method: 'get',singleSelect: true, lines: true,
+                    autoRowHeight:true, striped:true," ></div>
+                <a id="clearPasscard" href="#" class="easyui-linkbutton" data-options="iconCls:'icon-write'"
                     style="width:40%; margin-top:5px">清除</a>
-                <input id="addCheckout" class="easyui-textbox" data-options="buttonText:'授权号码:', buttonAlign:'left', 
+                <input id="addPasscard" class="easyui-textbox" data-options="buttonText:'授权', buttonAlign:'right',
                     buttonIcon:'icon-search', iconWidth:'36px'" style="width:100%;height:36px">
             </div>
             <a id="sysClose" href="#" class="easyui-linkbutton" data-options="iconCls:'icon-write'"
@@ -52,8 +54,8 @@
             <div id="tabsWorksheet" class="easyui-tabs"  data-options="tabPosition:'left'" 
                 style="width:100%;height:95%;">
                 <!-- tabs page-1，报警事务-->
-                <div title="报警" data-options="iconCls:'icon-tip',closable:true" style="padding:10px">
-                    <table id="tabAlarm" class="easyui-datagrid" title="报警记录表"  fitcolumns="true" 
+                <div title="报警" data-options="iconCls:'icon-tip',closable:false" style="padding:10px">
+                    <table id="tabAlarms" class="easyui-datagrid" title="报警记录表"  fitcolumns="true"
                         style="height:80%; width: 100%"
                         data-options="singleSelect:true,rownumbers:true,collapsible:true, 
                             autoRowHeight:false,striped:true,
@@ -77,8 +79,8 @@
                     </div>
                 </div>
                 <!-- tabs page-2，一般事件记录-->
-                <div title="事件记录" data-options="iconCls:'icon-dbsettings',closable:true" style="padding:10px">
-                        <table id="tabChecks" class="easyui-datagrid" title="事件记录表"  fitcolumns="true" 
+                <div title="事件记录" data-options="iconCls:'icon-dbsettings',closable:false" style="padding:10px">
+                        <table id="tabCheckEvents" class="easyui-datagrid" title="事件记录表"  fitcolumns="true"
                         style="height:80%; width: 100%"
                         data-options="singleSelect:true,rownumbers:true,collapsible:true, 
                             autoRowHeight:false,striped:true,
@@ -103,13 +105,29 @@
                     </div>
                 </div>
                 <!-- tabs page-3，系统辅助-->
-                <div title="系统配置" data-options="iconCls:'icon-home1',closable:true" style="padding:10px">
+                <div title="系统配置" data-options="iconCls:'icon-home1',closable:false" style="padding:10px">
                     <table id="configSettings" class="easyui-propertygrid" style="width:400px" data-options="
                         showGroup: true, scrollbarSize: 0,
+                        url:'configs_json', method:'get',
                         columns: [[
-                            { field: 'name', title: '项目', width: 100, resizable: false },
-                            { field: 'value', title: '属性', width: 280, resizable: true }
-                           ]]">
+                            { field: 'name', title: '项目', width: 200, resizable: false },
+                            { field: 'value', title: '属性', width: 200, resizable: true,
+                                formatter: function(value, rowData, rowIndex)   {
+                                    if (rowData.editor.type=='combobox')    {
+                                        var itemtitle = 'xx';
+                                        for(var i=0; i<rowData.editor.options.data.length; i++)    {
+                                            if (value===rowData.editor.options.data[i].value) {
+                                                itemtitle = rowData.editor.options.data[i].text;
+                                                break;
+                                            }
+                                        }
+                                        return(itemtitle);
+                                    }   else    {
+                                        return(value);
+                                    }
+                                }
+                            }
+                           ]] ">
                     </table>
                     <a id="configApply" href="#" class="easyui-linkbutton" data-options="iconCls:'icon-ok'"
                         style="width:20%;height:36px; margin-top:20px;margin-left:20px">确认</a>
@@ -119,13 +137,15 @@
         <!-- 状态条 -->
         <div data-options="region:'south',border:false" style="height:60px;background:#A9FACD;padding:5px;">
             <input id="netStatus" class="easyui-textbox" data-options="editable:false, 
-                buttonText:'离线', buttonAlign:'left', buttonIcon:'icon-search', iconWidth:'36px',
-                prompt:'192.168.10.21' " style="width:350px;height:40px;">
-            <input id="genClock" class="easyui-textbox" data-options="editable:false" value="12:22"
-                style="width:200px;height:40px;">
-            <input id="runedTimes" class="easyui-textbox" data-options="editable:false" 
-                style="width:400px;height:40px;">
-    
+                buttonText:'---', buttonAlign:'left', buttonIcon:'icon-search', iconWidth:'36px',
+                prompt:'' " style="width:300px;height:40px;">
+            <input id="genClock" class="easyui-textbox" data-options="editable:false"
+                value="11:22:00" style="width:180px;height:40px; margin-right:0;">
+            <a id="ntpUpdate" href="#" class="easyui-linkbutton" data-options="iconCls:'icon-write'"
+                    style="width:120px;height:40px;margin-left:0;">网络校时</a>
+            <input id="runedTimes" class="easyui-textbox" data-options="editable:false"
+                style="width:300px;height:40px;">
+
         </div>      
     </body>
 </html>
