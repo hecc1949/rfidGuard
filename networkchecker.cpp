@@ -290,13 +290,15 @@ void NetworkChecker::doCheckWifiStatus()
  */
 void NetworkChecker::stopWifiLink()
 {    
-    system("kill -SIGUSR2 `cat /var/run/udhcpc.pid`");      //释放udhcpc申请的IP
+    if (!keepWifiOnClose)
+    {
+        system("kill -SIGUSR2 `cat /var/run/udhcpc.pid`");      //释放udhcpc申请的IP
     //几种方式都可以
-//#    system("wpa_cli -iwlan0 disc");     //disconncect -reconnect
+//    system("wpa_cli -iwlan0 disc");     //disconncect -reconnect
 //#    system("wpa_cli -iwlan0 disable_network 0");  //disable_network 0 -enable_network 0
-    system("wpa_cli -iwlan0 terminate");    //terimate wpa_supplicant
-//#    system("killall -q wpa_supplicant");
-
+        system("wpa_cli -iwlan0 terminate");    //terimate wpa_supplicant
+//    system("killall -q wpa_supplicant");
+    }
     netInfo.netStatus = 0;
 }
 

@@ -22,6 +22,7 @@ class NetworkChecker : public QObject
 public:
     explicit NetworkChecker(QObject *parent = nullptr);
     ~NetworkChecker();
+    bool keepWifiOnClose = false;
 
 private:
     QTimer *scanTimer;
@@ -32,7 +33,7 @@ private:
     NetworkInfo_t netInfo;
 
     void stopWifiLink();
-    int refreshWifi();
+//    int refreshWifi();
 signals:
     //private
     void sigCheckDhcp();
@@ -54,6 +55,7 @@ private slots:
     void updateRTC();
 
 public slots:
+    int refreshWifi();
 };
 
 #endif // NETWORKCHECKER_H

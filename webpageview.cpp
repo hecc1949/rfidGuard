@@ -13,7 +13,7 @@
 #include <QWebEngineHistory>
 #include <QWebEngineCookieStore>
 #include <QWebChannel>
-
+#include "mainwindow.h"
 
 //--------------------------------------------------------------------------------------------------
 WebPage::WebPage(QWebEngineProfile *profile, QObject *parent)
@@ -88,7 +88,8 @@ QStringList WebPage::chooseFiles(FileSelectionMode mode, const QStringList &oldF
     {
         selfile->setFileMode(QFileDialog::ExistingFile);
     }
-    selfile->setFixedSize(720, 720);
+//#    selfile->setFixedSize(720, 720);
+    selfile->setFixedSize(640, 640);
 
     QStringList filenames;
     if (selfile->exec()==QDialog::Accepted)
@@ -222,12 +223,6 @@ void WebPageView::setPage(WebPage *page)
 {
     QWebEngineView::setPage(page);
 
-    //挂接WebChannel对象
-/*    QWebChannel *channel = new QWebChannel(this);
-    channel->registerObject(QStringLiteral("urfidWrapper"), &m_urfidWrapper);
-    page->setWebChannel(channel);
-*/
-
     //链接导航动作
     QAction *action = page->action(QWebEnginePage::Forward);
     connect(action, &QAction::changed, [this, action]    {
@@ -263,10 +258,10 @@ void WebPageView::startDownloads(QWebEngineDownloadItem *download)    //slot
 
     //设定保存文件的路径和文件类型
     QString path;
+    QFileInfo fi(download->path());
     if (download->type() == QWebEngineDownloadItem::SavePage)
     {
         //SavePage隐含用的是mhtml， meta元素没必要，改成简单html格式
-        QFileInfo fi(download->path());
         QString defname = fi.absolutePath() +"/" + fi.completeBaseName() + ".html";
         path = QFileDialog::getSaveFileName(this, tr("保存为"), defname, tr("HTML(*.html)"));
 
@@ -274,7 +269,23 @@ void WebPageView::startDownloads(QWebEngineDownloadItem *download)    //slot
     }
     else
     {
-        path = QFileDialog::getSaveFileName(this, tr("保存为"), download->path()); //DownloadAttribute
+//        path = QFileDialog::getSaveFileName(this, tr("保存为"), download->path()); //DownloadAttribute
+//        MainWindow *mainwin = qobject_cast<MainWindow*>(this->parent());
+        MainWindow *mainwin = qobject_cast<MainWindow*>(this->window());        //这里用this->parent()会异常退出
+        if (QDir("/").exists(mainwin->m_tfcardPath))
+            path = mainwin->m_tfcardPath + "/" + fi.fileName();
+        else if (QDir("/").exists(mainwin->m_udiskPath))
+            path = mainwin->m_udiskPath + "/" + fi.fileName();
+        else
+            path = download->path();
+
+        QMessageBox *messageBox=new QMessageBox(QMessageBox::Information, tr("文件下载"),
+                        QString("下载文件保存到: %1\r\n").arg(path), QMessageBox::Close,this);
+        QTimer::singleShot(3000, messageBox, SLOT(close()));        //自动关闭messagebox
+        messageBox->show();
+
+//        qDebug()<<"try:"<<mainwin->m_tfcardPath<<mainwin->m_udiskPath;
+//        qDebug()<<"dowload file save to:"<<path;
     }
     if (path.isEmpty())
         return;
@@ -297,9 +308,10 @@ void WebPageView::startDownloads(QWebEngineDownloadItem *download)    //slot
         emit onDownloading(prompt);
     });
 
-    qDebug()<<"download to:"<<path;
+//    qDebug()<<"download to:"<<path;
     download->setPath(path);
     download->accept();
+
 }
 
 //------- 以下2个函数为IME接口相关:   ----------

@@ -43,8 +43,6 @@ void WebSocketTransport::textMessageReceived(const QString &messageData)
 WebsocketChannel::WebsocketChannel(QObject *parent) : QObject(parent)
 {
     m_server = new QWebSocketServer(QStringLiteral("QWebChannel Server"), QWebSocketServer::NonSecureMode);
-//    if (!m_server->listen(QHostAddress::LocalHost, 12345))
-//    if (!m_server->listen(QHostAddress::LocalHost, 2285))
     if (!m_server->listen(QHostAddress::AnyIPv4, 2285))
     {
         qFatal("Failed to open web socket server.");
@@ -57,8 +55,8 @@ WebsocketChannel::WebsocketChannel(QObject *parent) : QObject(parent)
 }
 
 /*
-void WebsocketChannel::registerObject(QString objname, QObject *obj)
+WebsocketChannel::~WebsocketChannel()
 {
-    m_channel->registerObject(objname, obj);
+//    m_channel->deregisterObject(wrapperObj);
 }
 */

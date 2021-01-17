@@ -4,9 +4,16 @@
 #include <QMainWindow>
 #include <QProcess>
 #include <QThread>
+#include "websocketchannel.h"
+#include "devwrapper.h"
 #include "webpageview.h"
 #include "networkchecker.h"
 #include "localtoolbar.h"
+
+//编译配置
+#ifndef ARM
+#define     NODEJS_EMBED_PROC
+#endif
 
 namespace Ui {
 class MainWindow;
@@ -22,11 +29,17 @@ public:
     NetworkInfo_t m_netInfo;
     NetworkChecker *netChecker;
 
+    QString m_tfcardPath;
+    QString m_udiskPath;
 protected:
     void closeEvent(QCloseEvent *event);
 
 private:
     Ui::MainWindow *ui;
+
+    //Registered new object after initialization, existing clients won't be notified!
+    WebsocketChannel wschannel;
+    DevWrapper devwrapper;
 
     WebPageView *m_webview;
     QProcess *nodeProc = NULL;

@@ -1,0 +1,160 @@
+{
+    "defineItems":  [
+        {
+            "oid" : 101,
+            "bits" : 6,
+            "name_c" : "版本号",
+            "name_e" : "Version",
+            "min" : 2,
+            "max" : 15,
+            "default" : 2
+        },
+        {
+            "oid" : 110,
+            "bits" : 2,
+            "name_c" : "编码方式",
+            "name_e" : "CodingType",
+            "min" : 0,
+            "max" : 2
+        },
+        {
+            "oid" : 111,
+            "bits" : 1,
+            "name_c" : "安全位",
+            "name_e" : "Security",
+            "default" : 0
+        },
+        {
+            "oid" : 112,
+            "bits" : 2,
+            "name_c" : "预留位",
+            "name_e" : "Reserved Bit"
+        },
+        {
+            "oid" : 113,
+            "bits" : 5,
+            "name_c" : "分拣位",
+            "name_e" : "Sorting"
+        },
+        {
+            "oid" : 114,
+            "bits" : 16,
+            "name_c" : "内容索引",
+            "name_e" : "ContentIndex",
+            "default" : 0
+        },
+        {
+            "oid" : 120,
+            "bits" : -1,
+            "name_c" : "馆藏标识符",
+            "name_e" : "ItemIndentifier"
+        }
+    ],
+    "EPCFormat" :   [
+        {
+            "formatId" : 0,
+            "name_c" : "基本格式(HZ)",
+            "emptyByteValue" : 0,
+            "assemblyItems" : [
+                {
+                    "offset_wd" : 0,
+                    "offset_bit" : 7,
+                    "bigEndian_wd" : 0,
+                    "oid" : 111,
+                    "name_c" : "安全位"
+                },
+                {
+                    "offset_wd" : 0,
+                    "offset_bit" : 5,
+                    "oid" : 112,
+                    "name_c" : "预留位"
+                },
+                {
+                    "offset_wd" : 0,
+                    "offset_bit" : 0,
+                    "oid" : 113,
+                    "name_c" : "分拣位"
+                },
+                {
+                    "offset_wd" : 0,
+                    "offset_bit" : 8,
+                    "oid" : 101,
+                    "name_c" : "版本号"
+                },
+                {
+                    "offset_wd" : 0,
+                    "offset_bit" : 14,
+                    "oid" : 110,
+                    "name_c" : "编码方式"
+                },
+                {
+                    "offset_wd" : 1,
+                    "offset_bit" : 0,
+                    "bigEndian_wd" : 0,
+                    "oid" : 114,
+                    "name_c" : "内容索引"
+                },
+                {
+                    "offset_wd" : 2,
+                    "offset_bit" : 0,
+                    "bigEndian_wd" : 0,
+                    "oid" : 120,
+                    "name_c" : "馆藏标识符"
+                }
+            ]
+        },
+        {
+            "formatId" : 1,
+            "name_c" : "兼容格式1",
+            "emptyByteValue" : 0,
+            "assemblyItems" : [
+                {
+                    "offset_wd" : 0,
+                    "offset_bit" : 7,
+                    "bigEndian_wd" : 1,
+                    "oid" : 111,
+                    "name_c" : "安全位"
+                },
+                {
+                    "offset_wd" : 0,
+                    "offset_bit" : 8,
+                    "oid" : 101,
+                    "name_c" : "版本号"
+                },
+                {
+                    "offset_wd" : 0,
+                    "offset_bit" : 14,
+                    "oid" : 110,
+                    "name_c" : "编码方式"
+                },
+                {
+                    "offset_wd" : 1,
+                    "offset_bit" : 0,
+                    "bigEndian_wd" : 1,
+                    "oid" : 114,
+                    "name_c" : "内容索引"
+                },
+                {
+                    "offset_wd" : 2,
+                    "offset_bit" : 0,
+                    "bigEndian_wd" : 0,
+                    "oid" : 120,
+                    "name_c" : "馆藏标识符"
+                }
+            ]
+        },
+        {
+            "formatId" : 2,
+            "name_c" : "简化格式2",
+            "emptyByteValue" : 0,
+            "assemblyItems" : [
+                {
+                    "offset_wd" : 2,
+                    "offset_bit" : 0,
+                    "oid" : 120,
+                    "name_c" : "馆藏标识符"
+                }
+            ]
+        }
+    ]
+}

@@ -1,6 +1,6 @@
 body {
     font-family: msyh,arial,sans-serif;
-    padding:20px;
+    padding:0px;
     font-size:16px;
     margin:0;
 }
@@ -10,26 +10,24 @@ body {
     color:greenyellow;
     font-size:2.0em;
     font-family: msyh;
-    margin:0;
-    margin-bottom:10px;
+    margin:0px;
+    padding:0px;
     text-align: center; 
-    height:60px;        /* 1280 =50px   */
-    margin-top:5px;
-    margin-bottom:5px;
+    height:50px;        /* 1280 =50px   */
 }
 
 .easyui-linkbutton  {
-    height: 36px;
+    height: 32px;
     margin: 5px;
 }
 
 .easyui-linkbutton .l-btn-text {
-    font-size: 1.2em;
+    font-size: 1.1em;
     color:blue;
 }
 
 .panel-title    {
-    font-size: 1.1em;
+    font-size: 1.0em;
     font-weight: normal;
 }
 
@@ -38,22 +36,35 @@ body {
 .datagrid-cell-group,
 .datagrid-header-rownumber,
 .datagrid-cell-rownumber    {
-    font-size: 1.0em;
+    font-size: 0.9em;
     font-weight: normal;
     font-family: msyh;
 }
 
 .tabs-title   {
-    font-size: 1.2em;
+    font-size: 1.0em;
     font-family: msyh;
 }
 
 .pagination-link .l-btn-text, .pagination-info {
-    font-size: 1.2em;
+    font-size: 1.0em;
     font-weight: normal;
     font-family: msyh;
 }
 
 .textbox .textbox-text, .textbox .l-btn-text  {
-    font-size: 1.2em;
+    font-size: 1.1em;
 }
+
+/*
+.iconMark   {
+    background:url('images/wifi.png') no-repeat center center;
+    color: red;
+    text-align: center;
+    border:1px solid black;
+    margin:0px;
+    padding:0px;
+    width:64px;
+    height:64px;
+}
+*/

@@ -30,8 +30,10 @@ if(contains(DEFINES,ARM))   {
     viewfiles.path=$${OUT_PWD}/view
 }
 
-nodefiles.files = wod-index.js schemetimer.js
-viewfiles.files = view/wod.html view/wod.css view/wod-rfidmon.js view/utils.js view/configs.json
+nodefiles.files = wod-index.js schemetimer.js devlinker.js reports.js \
+        config.ini EpcDefItems.json
+viewfiles.files = view/wod.html view/wod.css view/wod-rfidmon.js view/utils.js
+viewfiles.files += view/configs.json view/icon.css
 
 INSTALLS +=nodefiles viewfiles
 
@@ -54,7 +56,8 @@ SOURCES += \
     websocketchannel.cpp \
     devwrapper.cpp \
     networkchecker.cpp \
-    localtoolbar.cpp
+    localtoolbar.cpp \
+    netconfigdialog.cpp
 
 HEADERS += \
         mainwindow.h    \
@@ -69,11 +72,13 @@ HEADERS += \
     ../urfidLib/inc/rfidreadermod.hpp  \
     ../urfidLib/inc/gpiodev.h \
     ../urfidLib/inc/dbstore.h  \
-    ../urfidLib/inc/inventproxy.h
+    ../urfidLib/inc/inventproxy.h \
+    netconfigdialog.h
 
 
 FORMS += \
-        mainwindow.ui
+        mainwindow.ui \
+    netconfigdialog.ui
 
 RESOURCES += \
     resources.qrc
@@ -83,4 +88,9 @@ DISTFILES += \
     wod-index.js \
     schemetimer.js \
     view/configs.json \
-    view/utils.js
+    view/utils.js \
+    config.ini \
+    EpcDefItems.json \
+    view/icon.css \
+    devlinker.js \
+    reports.js

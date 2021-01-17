@@ -1,8 +1,8 @@
+"use strict";
+
 /*
   scheme timer module
 */
-
-"use strict";
 
 var weekSchemeTimes = [{"begin":0, "end":0 }, {"begin":0, "end":0}, {"begin":0, "end":0},
         {"begin":0, "end":0 }, {"begin":0, "end":0}, {"begin":0, "end":0 }, {"begin":0, "end":0 }];     //秒值时间
@@ -49,47 +49,77 @@ function schemeCompile(defobjs)   {
 //    console.log(JSON.stringify(weekSchemeTimes));
 }
 
-var schemeGuardOn = false;
-
-function schemeTimerStart(evCallback)   {
-    var tickCount = 0;
+//var schemeGuardOn = false;
+function getSchGuardState() {
     var dt = new Date();
     var dayId = dt.getDay();
     var ntime = dt.getHours()*60*60 + dt.getMinutes()*60 + dt.getSeconds();
-    schemeGuardOn = (weekSchemeTimes[dayId].begin<= ntime && ntime <= weekSchemeTimes[dayId].end);
+    var schemeGuardOn = (weekSchemeTimes[dayId].begin<= ntime && ntime <= weekSchemeTimes[dayId].end);
+    var checkoutOpen = (checkoutOpenTimer>0);
+    if (schemeGuardOn)    {
+        if (checkoutOpen)
+            return(2);
+        else
+            return(1);
+    }   else    {
+        return (0);
+    }
+}
 
-    var jo = {"event": "tick", "param":[] };
-    if (evCallback) {
-/*        jo.param.push(tickCount);
-        jo.param.push(dt);
-        jo.param.push(schemeGuardOn); */
-        jo.param.push({'name':'tickcount', 'value':tickCount});
-        jo.param.push({'name':'time', 'value':dt});
-        jo.param.push({'name':'status','value':schemeGuardOn});
+var tickCount = 0;
 
-        evCallback(jo);
+function schemeTimerStart(evTickCallback)   {
+    var dt = new Date();
+/*    var dayId = dt.getDay();
+    var ntime = dt.getHours()*60*60 + dt.getMinutes()*60 + dt.getSeconds();
+    var schemeGuardOn = (weekSchemeTimes[dayId].begin<= ntime && ntime <= weekSchemeTimes[dayId].end);
+    var checkoutOpen = (checkoutOpenTimer>0);
+*/
+    var jo;
+    var schguardst = getSchGuardState();
+    if (evTickCallback) {
+//        jo = {'time':dt, 'tickcount':tickCount,'schguard':schemeGuardOn, 'checkoutOpen': checkoutOpen};
+        jo = {'time':dt, 'tickcount':tickCount,'schguardStatus': schguardst};
+        tickCount++;
+        evTickCallback(jo);
     }
     //
     var schemeTimer = setInterval(function()    {
         dt = new Date();
-        dayId = dt.getDay();
+/*        dayId = dt.getDay();
         ntime = dt.getHours()*60*60 + dt.getMinutes()*60 + dt.getSeconds();
         schemeGuardOn = (weekSchemeTimes[dayId].begin<= ntime && ntime <= weekSchemeTimes[dayId].end);
-        if (evCallback)     {
-            jo = {"event": "tick", "param":[] };
-/*            jo.param.push(++tickCount);
-            jo.param.push(dt);
-            jo.param.push(schemeGuardOn); */
-            jo.param.push({'name':'tickcount', 'value':++tickCount});
-            jo.param.push({'name':'time', 'value':dt});
-            jo.param.push({'name':'status','value':schemeGuardOn});
-            evCallback(jo);
+        checkoutOpen = (checkoutOpenTimer>0); */
+        schguardst = getSchGuardState();
+        if (evTickCallback)     {
+//            jo = {'time':dt, 'tickcount':tickCount,'schguard':schemeGuardOn, 'checkoutOpen': checkoutOpen};
+            jo = {'time':dt, 'tickcount':tickCount,'schguardStatus': schguardst};
+            tickCount++;
+            evTickCallback(jo);
+        }
+        if (checkoutOpenTimer>0)    {
+            checkoutOpenTimer -= 5;
         }
     }, 5000);
 }
 
+var checkoutOpenTimer = 0;
+function startCheckOutOpen(minute) {
+    checkoutOpenTimer = minute*60;
+}
+
+/*
+function isCheckoutOpen()   {
+    return (checkoutOpenTimer<=0);
+}
+*/
+
 module.exports =    {
-    schemeGuardOn: schemeGuardOn,
-    schemeTimerStart: schemeTimerStart,
-    schemeCompile: schemeCompile
+//    schemeGuardOn: schemeGuardOn,
+    schemeTimerStart : schemeTimerStart,
+    schemeCompile : schemeCompile,
+
+    startCheckOutOpen: startCheckOutOpen,
+    getSchGuardState : getSchGuardState
+//    isCheckoutOpen: isCheckoutOpen
 }

@@ -10,8 +10,13 @@ class LocalToolBar : public QToolBar
 public:
     explicit LocalToolBar(QWidget *parent = nullptr);
 
+private:
+
 signals:
-    void onLocalToolsAction(int index);
+//    void onLocalToolsAction(int index);
+
+private slots:
+    void doFilecopy();
 
 };
 

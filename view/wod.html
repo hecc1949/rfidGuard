@@ -23,9 +23,9 @@
         </div>
         <div data-options="region:'east',split:true,title:'控制面板'" style="width:350px;padding:5px;">
             <div id="ctrlPanelA" class="easyui-panel" title="直接控制" style="width:100%; padding:0px;" >
-                <a id="stopAlarm" href="#" class="easyui-linkbutton" data-options="iconCls:'icon-search'"
+                <a id="stopAlarm" href="#" class="easyui-linkbutton" data-options="iconCls:'icon-right'"
                     style="width:40%; ">关警报</a> <br/>
-                <a id="checkoutOpen" href="#" class="easyui-linkbutton" data-options="iconCls:'icon-write'"
+                <a id="checkoutOpen" href="#" class="easyui-linkbutton" data-options="iconCls:'icon-opendoc'"
                     style="width:40%; ">临时放行</a>
                 <input id="checkoutTimes" class="easyui-combobox" style="width:50%;" data-options="
                         data: [{value:'1',text:'1'},
@@ -39,69 +39,74 @@
             </div> 
             <div id="ctrlPanelB" class="easyui-panel" title="授权通行" style="width:100%; padding:5px;" >
                 <div id="passcards" class="easyui-datalist" title="当前可通行" style="width:100%; height:200px;"
-                    data-options="url: 'passcards', method: 'get',singleSelect: true, lines: true,
+                    data-options="url: 'passcards', method: 'get',singleSelect: true, lines: true,loadMsg:'',
                     autoRowHeight:true, striped:true," ></div>
-                <a id="clearPasscard" href="#" class="easyui-linkbutton" data-options="iconCls:'icon-write'"
+                <a id="clearPasscard" href="#" class="easyui-linkbutton" data-options="iconCls:'icon-remove'"
                     style="width:40%; margin-top:5px">清除</a>
                 <input id="addPasscard" class="easyui-textbox" data-options="buttonText:'授权', buttonAlign:'right',
-                    buttonIcon:'icon-search', iconWidth:'36px'" style="width:100%;height:36px">
+                    buttonIcon:'icon-add', iconWidth:'36px'" style="width:100%;height:36px">
             </div>
-            <a id="sysClose" href="#" class="easyui-linkbutton" data-options="iconCls:'icon-write'"
+            <a id="sysClose" href="#" class="easyui-linkbutton" data-options="iconCls:'icon-close'"
                 style="width:45%; margin-top: 20px">关机</a>
         </div>
         <!-- 内容显示区 -->
-        <div data-options="region:'center'">
+        <div data-options="region:'center'" style="padding:2px;">
             <div id="tabsWorksheet" class="easyui-tabs"  data-options="tabPosition:'left'" 
                 style="width:100%;height:95%;">
                 <!-- tabs page-1，报警事务-->
-                <div title="报警" data-options="iconCls:'icon-tip',closable:false" style="padding:10px">
+                <div title="报警" data-options="iconCls:'icon-tip',closable:false" style="padding:2px">
                     <table id="tabAlarms" class="easyui-datagrid" title="报警记录表"  fitcolumns="true"
-                        style="height:80%; width: 100%"
-                        data-options="singleSelect:true,rownumbers:true,collapsible:true, 
-                            autoRowHeight:false,striped:true,
-                            pagination:true, pageSize:20, 
-                            url:'',method:'get' " >
+                        style="height:83%; width: 100%"
+                        data-options="singleSelect:true,rownumbers:false,collapsible:false,
+                            autoRowHeight:false,striped:true,loadMsg:'',
+                            pagination:true, pageSize:10,
+                            url:'alarmRecords',method:'get' " >
                         <thead>
                         <tr>
-                        <th data-options="field:'itemid',width:50">ID</th>
-                        <th data-options="field:'eventTime',width:120">格式</th>
+                        <th data-options="field:'id',width:40">ID</th>
+                        <th data-options="field:'firstTime',width:120,formatter:formatDateTimeItem">时间</th>
+                        <th data-options="field:'identifier',width:180">标识号</th>
                         <th data-options="field:'epc',width:250">标签号(EPC)</th>
-                        <th data-options="field:'context',width:180">内容(条码)</th>
-                        <th data-options="field:'event',width:80">事件</th>
-                        <th data-options="field:'result',width:80">处理</th>
-                        <th data-options="field:'closeTime',width:120">关闭时间</th>
+                        <th data-options="field:'prompt',width:140">说明</th>
+                        <th data-options="field:'state',width:60, formatter:function(value,row,rowId)   {
+                                if (value===0) return ('激活');   else return('关停');
+                            } ">状态</th>
+                        <th data-options="field:'reason',width:80">处理原因</th>
+                        <th data-options="field:'lastTime',width:80, formatter:formatTimeItem">关闭时间</th>
                         </tr>
                         </thead>
                     </table>
-                    <div class="easyui-panel" title=" " style="width:100%; padding:10px 10px;">
-                        <a id="btnAlarmDataDownld" href="#" class="easyui-linkbutton" data-options="iconCls:'icon-save'"
-                                style="width:25%;height:36px; margin-top:0px; margin-bottom:0px;">下载数据</a>
+                    <div class="easyui-panel" title=" " style="width:100%; padding:5px">
+                        <a id="btnAlarmReport" href="#" class="easyui-linkbutton" data-options="iconCls:'icon-save'"
+                                style="width:20%; margin-top:0px; margin-bottom:0px;">下载数据</a>
                     </div>
                 </div>
                 <!-- tabs page-2，一般事件记录-->
-                <div title="事件记录" data-options="iconCls:'icon-dbsettings',closable:false" style="padding:10px">
+                <div title="事件记录" data-options="iconCls:'icon-dbsettings',closable:false" style="padding:2px">
                         <table id="tabCheckEvents" class="easyui-datagrid" title="事件记录表"  fitcolumns="true"
-                        style="height:80%; width: 100%"
-                        data-options="singleSelect:true,rownumbers:true,collapsible:true, 
-                            autoRowHeight:false,striped:true,
-                            pagination:true, pageSize:20, 
-                            url:'',method:'get' " >
+                        style="height:83%; width: 100%"
+                        data-options="singleSelect:true,rownumbers:true,collapsible:false,
+                            autoRowHeight:false,striped:true,loadMsg:'',
+                            pagination:true, pageSize:10,
+                            url:'guardEvents',method:'get' " >
                         <thead>
                         <tr>
-                        <th data-options="field:'itemid',width:50">ID</th>
+                        <th data-options="field:'id',width:50">ID</th>
                         <th data-options="field:'event',width:80">事件</th>
-                        <th data-options="field:'eventTime',width:120">时间</th>
+                        <th data-options="field:'firstTime',width:120,formatter:formatDateTimeItem">开始时间</th>
+                        <th data-options="field:'lastTime',width:80, formatter:formatTimeItem">最后时间</th>
                         <th data-options="field:'epc',width:250">标签号(EPC)</th>
-                        <th data-options="field:'context',width:180">内容(条码)</th>
-                        <th data-options="field:'remark',width:80">说明</th>
+                        <th data-options="field:'identifier',width:180">标识号</th>
+                        <th data-options="field:'reason',width:80">原因</th>
+                        <th data-options="field:'prompt',width:80">说明</th>
                         </tr>
                         </thead>
                     </table>
-                    <div class="easyui-panel" title=" " style="width:100%; padding:10px 10px;">
-                        <a id="btnEventReport" href="#" class="easyui-linkbutton" data-options="iconCls:'icon-save'"
-                                style="width:25%;height:36px; margin-top:0px; margin-bottom:0px;">下载数据</a>
-                        <a id="btnEventReset" href="#" class="easyui-linkbutton" data-options="iconCls:'icon-cut'"
-                                style="width:25%;height:36px;">清除数据</a><br/>
+                    <div class="easyui-panel" title=" " style="width:100%; padding:0px;">
+                        <a id="btnEventsReport" href="#" class="easyui-linkbutton" data-options="iconCls:'icon-save'"
+                                style="width:20%; margin-top:0px; margin-bottom:0px;">下载数据</a>
+                        <a id="btnEventsClear" href="#" class="easyui-linkbutton" data-options="iconCls:'icon-cut'"
+                                style="width:25%;">清除数据和缓存文件</a><br/>
                     </div>
                 </div>
                 <!-- tabs page-3，系统辅助-->
@@ -111,40 +116,35 @@
                         url:'configs_json', method:'get',
                         columns: [[
                             { field: 'name', title: '项目', width: 200, resizable: false },
-                            { field: 'value', title: '属性', width: 200, resizable: true,
-                                formatter: function(value, rowData, rowIndex)   {
-                                    if (rowData.editor.type=='combobox')    {
-                                        var itemtitle = 'xx';
-                                        for(var i=0; i<rowData.editor.options.data.length; i++)    {
-                                            if (value===rowData.editor.options.data[i].value) {
-                                                itemtitle = rowData.editor.options.data[i].text;
-                                                break;
-                                            }
-                                        }
-                                        return(itemtitle);
-                                    }   else    {
-                                        return(value);
-                                    }
-                                }
-                            }
-                           ]] ">
+                            { field: 'value', title: '属性', width: 200, resizable: true, formatter: formatComboboxItem }
+                        ]] ">
                     </table>
                     <a id="configApply" href="#" class="easyui-linkbutton" data-options="iconCls:'icon-ok'"
-                        style="width:20%;height:36px; margin-top:20px;margin-left:20px">确认</a>
+                        style="width:20%; margin-top:10px;margin-left:10px">确认</a>
                 </div>
             </div>                
         </div>
         <!-- 状态条 -->
-        <div data-options="region:'south',border:false" style="height:60px;background:#A9FACD;padding:5px;">
-            <input id="netStatus" class="easyui-textbox" data-options="editable:false, 
-                buttonText:'---', buttonAlign:'left', buttonIcon:'icon-search', iconWidth:'36px',
-                prompt:'' " style="width:300px;height:40px;">
+        <div data-options="region:'south',border:false" style="height:60px;background:#A9FACD;padding:2px;">
+<!--            <img id="netStatusIcon" src="images/wifi.png"
+                style=" border=0; align='middle'; width:32px;height:32px;margin:0px;padding:0px"></img>
+-->
+            <input id="netStatus" class="easyui-textbox" data-options="editable:false,
+                buttonText:'', buttonAlign:'left',
+                buttonIcon:'icon-connect-off', iconWidth:'48px',iconHeight:'48px',
+                prompt:'' " style="width:300px;height:40px;margin:0px;padding:0px">
+
+            <input id="guardStatus" class="easyui-textbox" data-options="editable:false"
+                value="撤防状态" style="width:120px;height:40px; margin-right:0;">
+            <input id="deviceAction" class="easyui-textbox" data-options="editable:false"
+                 value="待机" style="width:120px;height:40px; margin-right:0;">
+
             <input id="genClock" class="easyui-textbox" data-options="editable:false"
-                value="11:22:00" style="width:180px;height:40px; margin-right:0;">
+                    value="11:22:00" style="width:140px;height:40px; margin-right:0;">
             <a id="ntpUpdate" href="#" class="easyui-linkbutton" data-options="iconCls:'icon-write'"
                     style="width:120px;height:40px;margin-left:0;">网络校时</a>
             <input id="runedTimes" class="easyui-textbox" data-options="editable:false"
-                style="width:300px;height:40px;">
+                style="width:200px;height:40px;">
 
         </div>      
     </body>

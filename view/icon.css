@@ -98,6 +98,7 @@
 /*  --- my icons    -- */
 .icon-close{
         background:url('icons/fclose.ico') no-repeat center center;
+/*        width:32px; height:32px; */
 }
 
 
@@ -127,6 +128,28 @@
 
 .icon-fforward{
         background:url('icons/tip.png') no-repeat center center;
-/*        background:url('icons/fforward.png') no-repeat center center; */
 }
 
+.icon-connect-on{
+        background:url('icons/connect16.png') no-repeat center center;
+}
+
+.icon-connect-wifi{
+        background:url('icons/wifi16.png') no-repeat center center;
+}
+
+.icon-connect-off{
+        background:url('icons/connect16_d.png') no-repeat center center;
+}
+
+.icon-sound{
+        background:url('icons/speaker16.png') no-repeat center center;
+}
+
+.icon-left{
+        background:url('icons/arrowleft_green16.png') no-repeat center center;
+}
+
+.icon-right{
+        background:url('icons/arrowright_green16.png') no-repeat center center;
+}

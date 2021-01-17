@@ -5,8 +5,10 @@
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
-    ui(new Ui::MainWindow)
+    ui(new Ui::MainWindow), wschannel(), devwrapper(this)
 {    
+    wschannel.registerObject(QStringLiteral("devwrapper"),&devwrapper);
+
     ui->setupUi(this);
 #ifdef ARM
     QDesktopWidget* desktop = QApplication::desktop();
@@ -14,18 +16,15 @@ MainWindow::MainWindow(QWidget *parent) :
 #else
     setGeometry(0, 0, 1280, 720);
 #endif
-//    TinyTitleBar* m_TitleBar = new TinyTitleBar(this);
-//    m_TitleBar->hide();
-
     setWindowTitle("应用窗口");
     setWindowIcon(QIcon(":res/list_bullets_48px.png"));
-//    m_TitleBar->setAutohide(50000);
     ui->statusBar->hide();
-
 
     localTools = new LocalToolBar(this);
     addToolBar(localTools);
-    connect(localTools, SIGNAL(onLocalToolsAction(int)), this, SLOT(doLocalManage(int)));
+//    connect(localTools, SIGNAL(onLocalToolsAction(int)), this, SLOT(doLocalManage(int)));
+
+    loadNodejsServer();
 
     loadWebView();
     QVBoxLayout *layout = new QVBoxLayout;
@@ -45,12 +44,25 @@ MainWindow::MainWindow(QWidget *parent) :
     netChecker->moveToThread(&netmgrThread);
     netmgrThread.start();
 
+    QSettings ini(QCoreApplication::applicationDirPath()+"/config.ini",QSettings::IniFormat);
+    m_tfcardPath = ini.value("/Operator/TFCardPath").toString();
+    if (m_tfcardPath.length()==0)
+        m_tfcardPath = "/media/hcsd";       //如果是空值，Dir()类会在qDebug()输出message, 没必要
+    m_udiskPath = ini.value("/Operator/UDiskPath").toString();
+    if (m_udiskPath.length()==0)
+        m_udiskPath = "/media/udisk";
+
+
     QTimer *startAppTimer = new QTimer(this);
     startAppTimer->setSingleShot(true);
     connect(startAppTimer, &QTimer::timeout, this,[=]() {
         netChecker->checkNetworkStatus();
     });
     startAppTimer->start(2000);
+
+//    qDebug() << QDateTime::currentDateTime().toString();
+//    qDebug() << QDateTime::currentDateTime().toString(Qt::ISODate);
+
 }
 
 MainWindow::~MainWindow()
@@ -58,11 +70,76 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
-void MainWindow::closeEvent(QCloseEvent *event)
+void MainWindow::closeEvent(QCloseEvent *)
 {
-    Q_UNUSED(event);
+    QElapsedTimer rtimer;
+    rtimer.start();
+
+//    Q_UNUSED(event);
+//    m_webview->load(QUrl(""));
     setStyleSheet("background-color: #008080");     //
     repaint();
+
+#ifdef ARM
+    devwrapper.closeDevices();
+#endif
+
+/*    if (nodeProc != NULL)
+    {
+        nodeProc->terminate();
+        nodeProc = NULL;
+    }
+    */
+
+#ifdef NODEJS_EMBED_PROC
+    netChecker->keepWifiOnClose = (nodeProc != NULL);
+#endif
+
+    while(netmgrThread.isRunning())
+    {
+        netmgrThread.quit();
+        netmgrThread.wait();
+    }
+    delete netChecker;
+
+    devwrapper.closeServer();
+
+
+#ifdef ARM
+#ifndef NODEJS_EMBED_PROC
+    if (QDir("/").exists(m_tfcardPath))
+    {
+        //卸载TF卡
+//        system("sync");
+        system((QString("umount -l %1").arg(m_tfcardPath)).toLatin1().data());
+    }
+    if (QDir("/").exists(m_udiskPath))
+    {
+        //卸载U盘
+//        system("sync");
+        system((QString("umount -f %1").arg(m_udiskPath)).toLatin1().data()); //
+    }
+#endif
+#endif
+
+
+    while(rtimer.elapsed()<100)
+    {
+        QCoreApplication::processEvents();
+    }
+}
+
+#if 0
+void MainWindow::safeClose()
+{
+#ifdef ARM
+    devwrapper.closeDevices();
+#endif
+
+//    m_webview->load(QUrl(""));
+    setStyleSheet("background-color: #008080");     //
+    repaint();
+//    wschannel.closeChannel();
 
     if (nodeProc != NULL)
     {
@@ -75,12 +152,6 @@ void MainWindow::closeEvent(QCloseEvent *event)
         netmgrThread.wait();
     }
     delete netChecker;
-
-    if (nodeProc != NULL)
-    {
-        nodeProc->terminate();
-        nodeProc = NULL;
-    }
 
 #ifdef ARM
     QString tfcardPath = "/media/hcsd";
@@ -99,7 +170,20 @@ void MainWindow::closeEvent(QCloseEvent *event)
     }
 #endif
 
+//    qDebug()<<"program safe close..";
+/*
+    QTimer *closeTimer = new QTimer(this);
+    closeTimer->setSingleShot(true);
+//    connect(closeTimer, SIGNAL(timeout()), this, SLOT(close()));
+    connect(closeTimer, &QTimer::timeout, [this]()  {
+        qDebug()<<"program safe close..";
+        close();
+    });
+    closeTimer->start(100);
+*/
+    this->close();
 }
+#endif
 
 void MainWindow::loadWebView()
 {
@@ -115,21 +199,16 @@ void MainWindow::loadWebView()
     m_webview->setUrl(url);
 
     connect(m_webview, &QWebEngineView::urlChanged,[this](const QUrl &url) {
-//        naviToolBar->setUrlLine(url.toString());
         ui->statusBar->showMessage(url.toString());
     });
     connect(m_webview, &WebPageView::loadProgressStatus, [=](int progress) {
         if (progress<0)     //服务端未运行，加载失败，重新连接
         {
-            if (nodeProc == NULL)
-            {
-                loadNodejsServer();
-            }
+            loadNodejsServer();
             //delay
             QEventLoop loop;
-            QTimer::singleShot(1000, &loop, SLOT(quit()));
+            QTimer::singleShot(2500, &loop, SLOT(quit()));
             loop.exec(QEventLoop::ExcludeUserInputEvents);
-
             m_webview->setUrl(url);
         }
     });
@@ -145,7 +224,8 @@ void MainWindow::loadWebView()
 
 void MainWindow::loadNodejsServer()
 {
-    qDebug()<<"load nodejs...";
+    if (nodeProc != NULL)
+        return;
     nodeProc = new QProcess();
     nodeProc->setProcessChannelMode(QProcess::SeparateChannels);   //stdout和stderr分开
 
@@ -172,18 +252,28 @@ void MainWindow::loadNodejsServer()
     nodeProc->setWorkingDirectory(workdir);
     QStringList args;       //注意，args中String不能包含空格！
     args <<"wod-index.js";
-    nodeProc->start(tr("node"), args);
-//    nodeProc->startDetached(tr("node"), args);
+//    args << (workdir + "/wod-index.js");
 
-    if (!nodeProc->waitForStarted(500))
+#ifdef NODEJS_EMBED_PROC
+    nodeProc->start(tr("node"), args);
+    if (!nodeProc->waitForStarted(100))
     {
-        QMessageBox::warning(this,tr("warning"), "nodejs启动失败");
+        QMessageBox::warning(this,tr("warning"), "QProcess启动nodejs失败");
         nodeProc = NULL;
     }
-
+    qDebug()<<"run nodejs in Qt-process..";
+#else
+    if (!nodeProc->startDetached(tr("node"), args))     //Detach方式不能用waitForStarted()判断启动成功
+    {
+        QMessageBox::warning(this,tr("warning"), "QProcess启动nodejs失败");
+        nodeProc = NULL;
+    }
+    qDebug()<<"run nodejs detached.";
+#endif
 }
 
 void MainWindow::doLocalManage(int cmdId)
 {
-    Q_UNUSED(cmdId);
+//    Q_UNUSED(cmdId);
+    qDebug()<<"Local cmd:"<<cmdId;
 }
