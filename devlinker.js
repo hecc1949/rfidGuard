@@ -8,25 +8,27 @@ var WebSocket = require('faye-websocket');
 var QWebChannel = require('./qwebchannel.js').QWebChannel;
 var devwrapper = null, wcClient;
 
-var wsServer  =  null;
+var wsServers = [];
 var clientCount = 0;
 
 //为前端提供websocket server
 var wsServerCreate = function(server, onWsServerMessage, onStart)   {
     server.on('upgrade', function(request, socket, body)   {
         if (WebSocket.isWebSocket(request)) {
-            wsServer = new WebSocket(request, socket, body);
-            wsServer.on('message', function(event) {
+            var id = clientCount;
+            wsServers[id] = new WebSocket(request, socket, body);
+            wsServers[id].on('message', function(event) {
                 var cmd = JSON.parse(event.data);
                 onWsServerMessage(cmd);
             });
-//            console.log("websocket server created.");
-            wsServer.on('close', function(event) {
-                console.log('close', event.code, event.reason);
+            console.log("websocket server created."+clientCount);
+
+            wsServers[id].on('close', function(event) {
+                console.log('websocket client close', event.code, event.reason);
                 if (clientCount>0)
                     clientCount--;
                 if (clientCount===0)
-                    wsServer = null;
+                    wsServers[id] = null;
             });
             clientCount++;
             if (onStart !== undefined && clientCount===1)  {
@@ -37,15 +39,10 @@ var wsServerCreate = function(server, onWsServerMessage, onStart)   {
 }
 
 //
-//var reLinkTimer;
-//var reLinkCount = 5;
-//var autoReLink = true;
-//var tmpEventWorker;
 function linkWebchannel(onDeviceEvents)   {
     if (devwrapper !== null)
         return;
     wcClient = new WebSocket.Client('ws://127.0.0.1:2285/');
-//    tmpEventWorker = onDeviceEvents;
     wcClient.on('open', function(event) {
         var transport = {
             send: function(data) {
@@ -67,11 +64,6 @@ function linkWebchannel(onDeviceEvents)   {
         wcClient.on('message', function(event) {
             transport.onmessage(event);
         });
-
-/*        if (reLinkCount>0)  {
-            reLinkCount = 0;
-            clearTimeout(reLinkTimer);
-        } */
     });
 
     wcClient.on('error', function(error) {
@@ -79,25 +71,8 @@ function linkWebchannel(onDeviceEvents)   {
     });
     wcClient.on('close', function() {
         console.log('Webchannel close.');
-/*        if (reLinkCount >0) {
-            reLinkTimer = setTimeout(linkWebchannel(tmpEventWorker), 2000);   //重新连接
-            console.log("Webchannel re-link:" + reLinkCount);
-            reLinkCount--;
-        }   else    {
-            console.log('Webchannel closed, process exit');
-            clearTimeout(reLinkTimer);
-            process.exit(1);
-        }
-*/
-
-/*
-        setTimeout(function()   {
-            if (autoReLink)     linkWebchannel();
-        }, 2000);	//重新连接
-*/
     });
 }
-//linkWebchannel();
 
 var doDevCommand = function(cmd, param, callback) {
     if (devwrapper !== null)    {
@@ -109,8 +84,10 @@ var doDevCommand = function(cmd, param, callback) {
 }
 
 var wsSeverNotify = function(jo)    {
-    if (wsServer !== null)   {
-        wsServer.send(JSON.stringify(jo));
+    for(var id=0; id<wsServers.length; id++)    {
+        if (wsServers[id] !== null)   {
+            wsServers[id].send(JSON.stringify(jo));
+        }
     }
 }
 
@@ -118,19 +95,11 @@ function getClientCount()   {
     return(clientCount);
 }
 
-/*
-function stopAutoRelink()   {
-//    clearTimeout(reLinkTimer);
-    autoReLink = false;
-}
-*/
-
 module.exports =    {
     wsServerCreate: wsServerCreate,
     wsSeverNotify: wsSeverNotify,
     getClientCount: getClientCount,
 
     linkWebchannel: linkWebchannel,
-//    stopAutoRelink: stopAutoRelink,
     doDevCommand: doDevCommand
 }

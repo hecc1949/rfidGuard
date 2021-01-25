@@ -20,8 +20,8 @@ MainWindow::MainWindow(QWidget *parent) :
     setWindowIcon(QIcon(":res/list_bullets_48px.png"));
     ui->statusBar->hide();
 
-    localTools = new LocalToolBar(this);
-    addToolBar(localTools);
+//    localTools = new LocalToolBar(this);
+//    addToolBar(localTools);
 //    connect(localTools, SIGNAL(onLocalToolsAction(int)), this, SLOT(doLocalManage(int)));
 
     loadNodejsServer();
@@ -52,6 +52,11 @@ MainWindow::MainWindow(QWidget *parent) :
     if (m_udiskPath.length()==0)
         m_udiskPath = "/media/udisk";
 
+    localTools = new LocalToolBar(this);
+    addToolBar(localTools);
+
+    fsWatcher.addPath("/media");
+    connect(&fsWatcher, SIGNAL(directoryChanged(QString)), localTools, SLOT(onSysDeviceChange(QString)));
 
     QTimer *startAppTimer = new QTimer(this);
     startAppTimer->setSingleShot(true);
@@ -60,8 +65,7 @@ MainWindow::MainWindow(QWidget *parent) :
     });
     startAppTimer->start(2000);
 
-//    qDebug() << QDateTime::currentDateTime().toString();
-//    qDebug() << QDateTime::currentDateTime().toString(Qt::ISODate);
+//    qDebug() <<"curent timeZone:"<< QDateTime::currentDateTime().timeZone().id(); //Asia/Shanghai
 
 }
 
@@ -76,6 +80,7 @@ void MainWindow::closeEvent(QCloseEvent *)
     rtimer.start();
 
 //    Q_UNUSED(event);
+//    m_webview->close();
 //    m_webview->load(QUrl(""));
     setStyleSheet("background-color: #008080");     //
     repaint();

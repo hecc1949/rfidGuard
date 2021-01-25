@@ -32,8 +32,8 @@ if(contains(DEFINES,ARM))   {
 
 nodefiles.files = wod-index.js schemetimer.js devlinker.js reports.js \
         config.ini EpcDefItems.json
-viewfiles.files = view/wod.html view/wod.css view/wod-rfidmon.js view/utils.js
-viewfiles.files += view/configs.json view/icon.css
+viewfiles.files = view/wod.html view/wod-rfidmon.js view/utils.js view/stateview.js
+viewfiles.files += view/configs.json view/icon.css view/wod.css
 
 INSTALLS +=nodefiles viewfiles
 
@@ -93,4 +93,5 @@ DISTFILES += \
     EpcDefItems.json \
     view/icon.css \
     devlinker.js \
-    reports.js
+    reports.js \
+    view/stateview.js

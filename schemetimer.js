@@ -33,7 +33,6 @@ function schemeCompile(defobjs)   {
     if (obj)    {
         timeseg[3] = parseInt((obj.value.split(':'))[0])*60*60 + parseInt((obj.value.split(':'))[1])*60;
     }
-
     for(i=0; i<7; i++)  {
         if (selIds[i] === '1')    {
             weekSchemeTimes[i].begin = 0;
@@ -46,10 +45,8 @@ function schemeCompile(defobjs)   {
             weekSchemeTimes[i].end = timeseg[3];
         }
     }
-//    console.log(JSON.stringify(weekSchemeTimes));
 }
 
-//var schemeGuardOn = false;
 function getSchGuardState() {
     var dt = new Date();
     var dayId = dt.getDay();
@@ -70,15 +67,9 @@ var tickCount = 0;
 
 function schemeTimerStart(evTickCallback)   {
     var dt = new Date();
-/*    var dayId = dt.getDay();
-    var ntime = dt.getHours()*60*60 + dt.getMinutes()*60 + dt.getSeconds();
-    var schemeGuardOn = (weekSchemeTimes[dayId].begin<= ntime && ntime <= weekSchemeTimes[dayId].end);
-    var checkoutOpen = (checkoutOpenTimer>0);
-*/
     var jo;
     var schguardst = getSchGuardState();
     if (evTickCallback) {
-//        jo = {'time':dt, 'tickcount':tickCount,'schguard':schemeGuardOn, 'checkoutOpen': checkoutOpen};
         jo = {'time':dt, 'tickcount':tickCount,'schguardStatus': schguardst};
         tickCount++;
         evTickCallback(jo);
@@ -86,13 +77,8 @@ function schemeTimerStart(evTickCallback)   {
     //
     var schemeTimer = setInterval(function()    {
         dt = new Date();
-/*        dayId = dt.getDay();
-        ntime = dt.getHours()*60*60 + dt.getMinutes()*60 + dt.getSeconds();
-        schemeGuardOn = (weekSchemeTimes[dayId].begin<= ntime && ntime <= weekSchemeTimes[dayId].end);
-        checkoutOpen = (checkoutOpenTimer>0); */
         schguardst = getSchGuardState();
         if (evTickCallback)     {
-//            jo = {'time':dt, 'tickcount':tickCount,'schguard':schemeGuardOn, 'checkoutOpen': checkoutOpen};
             jo = {'time':dt, 'tickcount':tickCount,'schguardStatus': schguardst};
             tickCount++;
             evTickCallback(jo);
@@ -108,18 +94,10 @@ function startCheckOutOpen(minute) {
     checkoutOpenTimer = minute*60;
 }
 
-/*
-function isCheckoutOpen()   {
-    return (checkoutOpenTimer<=0);
-}
-*/
-
 module.exports =    {
-//    schemeGuardOn: schemeGuardOn,
     schemeTimerStart : schemeTimerStart,
     schemeCompile : schemeCompile,
 
     startCheckOutOpen: startCheckOutOpen,
     getSchGuardState : getSchGuardState
-//    isCheckoutOpen: isCheckoutOpen
 }

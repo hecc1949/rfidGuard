@@ -21,7 +21,7 @@ LocalToolBar::LocalToolBar(QWidget *parent)
     toggleViewAction()->setEnabled(false);
 
     addSeparator();
-    QAction* fileOutAction = new QAction(this);
+    fileOutAction = new QAction(this);
     fileOutAction->setIcon(QIcon(QStringLiteral(":/res/Save_32.png")));
     fileOutAction->setToolTip(tr("文件复制到U盘/SD卡"));
     addAction(fileOutAction);
@@ -29,7 +29,7 @@ LocalToolBar::LocalToolBar(QWidget *parent)
     connect(fileOutAction, &QAction::triggered, [this]() {   doFilecopy();  });
     addSeparator();
 
-    QAction* netCfgAction = new QAction(this);
+    netCfgAction = new QAction(this);
     netCfgAction->setIcon(QIcon(QStringLiteral(":/res/wifi.png")));
     netCfgAction->setToolTip(tr("网络配置"));
     addAction(netCfgAction);
@@ -37,6 +37,14 @@ LocalToolBar::LocalToolBar(QWidget *parent)
         NetConfigDialog *netcfgDlg = new NetConfigDialog((QWidget *)(this->parent()));
         netcfgDlg->show();
     });
+    addSeparator();
+
+    addSeparator();
+    updateFilesAction = new QAction(this);
+    updateFilesAction->setIcon(QIcon(QStringLiteral(":/res/format_clear_32.png")));
+    updateFilesAction->setToolTip(tr("应用程序升级"));
+    addAction(updateFilesAction);
+    connect(updateFilesAction, &QAction::triggered, [this]() {   doUpdateFilecopy();  });
     addSeparator();
 
     //#要把closeButton放最右边，QToolBar的layout中不允许用addStretch()来做拉伸弹簧，但可以加一个带水平扩展
@@ -52,6 +60,8 @@ LocalToolBar::LocalToolBar(QWidget *parent)
     addAction(closeAction);
     connect(closeAction, &QAction::triggered, [=]() {  parent->close();});
     addSeparator();
+
+    onSysDeviceChange("");
 }
 
 void LocalToolBar::doFilecopy()
@@ -121,4 +131,35 @@ void LocalToolBar::doFilecopy()
         QTimer::singleShot(3000, messageBox, SLOT(close()));        //自动关闭messagebox
         messageBox->show();
     }
+}
+
+void LocalToolBar::doUpdateFilecopy()
+{
+    MainWindow *mainwin = qobject_cast<MainWindow*>(this->parent());
+    if (!QDir("/").exists(mainwin->m_udiskPath+"/upd"))
+    {
+        return;
+    }
+    QMessageBox *messageBox=new QMessageBox(QMessageBox::Information, tr("升级程序文件"),
+            tr("确定从U盘复制文件到缓存目录，升级程序文件?"),QMessageBox::Ok | QMessageBox::Cancel, this);
+    if (messageBox->exec() == QMessageBox::Ok)
+    {
+        system("./updfilecopy.sh");
+        messageBox=new QMessageBox(QMessageBox::Information, tr("升级程序文件"),
+            tr("命令已执行，退出重启后完成升级."), QMessageBox::Close, this);
+        messageBox->show();
+    }
+}
+
+void LocalToolBar::onSysDeviceChange(QString path)
+{
+//    qDebug()<<"fsChange:"<<path;
+    Q_UNUSED(path);
+
+    MainWindow *mainwin = qobject_cast<MainWindow*>(this->parent());
+    bool pathOn = (QDir("/").exists(mainwin->m_udiskPath) || QDir("/").exists(mainwin->m_tfcardPath));
+    fileOutAction->setEnabled(pathOn);
+
+    pathOn = (QDir("/").exists(mainwin->m_udiskPath+"/upd"));
+    updateFilesAction->setEnabled(pathOn);
 }

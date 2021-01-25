@@ -115,7 +115,6 @@ function sendCommand(jo, callback)    {
             if (dat.result===true) {
                 if (callback)
                     callback(dat);
-//                    callback(dat.result);
             }   else    {
                 $.messager.alert("错误", "命令执行失败: 权限或参数错误",'error');
             }
@@ -132,10 +131,7 @@ function sendPasscard()   {
     if (card.length >3) {
         var param = [];
         param.push(card);
-        sendCommand({"command":"addPasscard", "param":JSON.stringify(param)},
-                    function()  {
-                        $("#passcards").datalist("load");   //刷新显示
-                    });
+        sendCommand({"command":"addPasscard", "param":JSON.stringify(param)});
     }
     $("#addPasscard").textbox('setValue', '');
 }

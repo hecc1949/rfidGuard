@@ -11,13 +11,17 @@ public:
     explicit LocalToolBar(QWidget *parent = nullptr);
 
 private:
-
+    QAction* fileOutAction;
+    QAction* netCfgAction;
+    QAction* updateFilesAction;
 signals:
 //    void onLocalToolsAction(int index);
 
 private slots:
     void doFilecopy();
-
+    void doUpdateFilecopy();
+public slots:
+    void onSysDeviceChange(QString path);
 };
 
 #endif // LOCALTOOLBAR_H

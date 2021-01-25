@@ -5,11 +5,12 @@
 
 
 var wssocket = null;
+var _clientId = -1;
 
 var serverStartTime;
 
  //websocket-client功能
- $(function()    {
+ $(function socketClient()    {
     wssocket = new window.WebSocket('ws://' + location.hostname + ':' + location.port + '/');
     wssocket.addEventListener('open', function() {
         setTimeout(function()   {
@@ -25,7 +26,6 @@ var serverStartTime;
         var jo = JSON.parse(msg.data);
         if (jo.event === "gotSysInfos") {       //对open时发出的getSysInfo命令的响应
             $("#configSettings").propertygrid("reload", {});
-//#            var obj = jo.param.find(obj=> obj.name ==='startTime');
             var obj = $.grep(jo.param, function(obj) {return obj.name==='startTime';})[0];
             if (obj && !serverStartTime)    {
                 serverStartTime = new Date(obj.value);
@@ -41,16 +41,24 @@ var serverStartTime;
                 }   else if (obj.value === 2)    {
                     $('#netStatus').textbox({buttonText:'Wifi',buttonIcon:'icon-connect-wifi'});
                 }   else    {
-//                    $("#netStatusIcon").attr("src", 'images/wifi_not.png');
                     $('#netStatus').textbox({buttonText:'离线', buttonIcon:'icon-connect-off'});
                 }
             }
             obj = $.grep(jo.param, function(obj) {return obj.name==='guardStatus';})[0];
             if (obj)    {
-//                console.log("getSysInfo, guardStatus:"+ obj.value);
-                setGuardStatusView(obj.value);
+                stateView.setGuardStatusView(obj.value);
             }
-
+            //
+            obj = $.grep(jo.param, function(obj) {return obj.name==='clientCount';})[0];
+            if (obj)    {
+                var cid = parseInt(obj.value);
+                if (_clientId <0)    {
+                    _clientId = cid;
+                    if (_clientId >2 || _clientId===1)    {
+                        $("#sysClose").linkbutton("disable");
+                    }
+                }
+            }
         }
         else if (jo.event === "tick")   {
             var dt = new Date(jo.param[0].time);
@@ -60,61 +68,59 @@ var serverStartTime;
             displayRuntime(dt);
 
             if (jo.param[0].guardStatus !== undefined)  {
-                setGuardStatusView(jo.param[0].guardStatus);
+                stateView.setGuardStatusView(jo.param[0].guardStatus);
             }
-            if (st_devScaning === true) {       //自动清除扫描状态。仅后备作用
-                if (++n_scantickRefreshHold >6)    {
-                    st_devScaning = false;
-                    setDevActionView(0);
-                }
-            }
+            stateView.tickforDevActionView();   //自动清除扫描状态。仅后备作用
         }
         else if (jo.event === "passcardUpd")    {
             $("#passcards").datalist("load");   //刷新显示
         }
         else if (jo.event === "tagCheckAcc")    {
+            stateView.setDevActionView(2);
             if ($('#tabsWorksheet').tabs('getTabIndex', $('#tabsWorksheet').tabs('getSelected')) ===1)  {
                 $("#tabCheckEvents").datagrid("reload");    //刷新当前页显示
             }
-            setDevActionView(2);
         }
         else if (jo.event === "alarmAct")    {
-            $('#tabsWorksheet').tabs("select", 0);
-            $("#tabAlarms").datagrid("reload");
+            if ($('#tabsWorksheet').tabs('getTabIndex', $('#tabsWorksheet').tabs('getSelected')) ===0)  {
+                $("#tabAlarms").datagrid("reload");
+            }
             if (jo.param[0].guardStatus ===3)
                 $("#stopAlarm").linkbutton("enable");
             else
                 $("#stopAlarm").linkbutton("disable");
-            setGuardStatusView(jo.param[0].guardStatus);
+            stateView.setGuardStatusView(jo.param[0].guardStatus);
+        }
+        else if (jo.event === "controlAct")    {
+            stateView.setDevActionView(3);
+            if ($('#tabsWorksheet').tabs('getTabIndex', $('#tabsWorksheet').tabs('getSelected')) ===1)  {
+                $("#tabCheckEvents").datagrid("reload");    //刷新当前页显示
+            }
         }
         else if (jo.event === "devMsg")  {
-//            $("#runStatus").html(JSON.stringify(jo.param[0]));
             if (jo.param[0].tagFinderRun !== undefined)   {
-                st_devScaning = jo.param[0].tagFinderRun;
                 if (jo.param[0].tagFinderRun === true) {
-                    setDevActionView(1);
+                    stateView.setDevActionView(1);
                 } else  {
-                    setDevActionView(0);
+                    stateView.setDevActionView(0);
                 }
             }   else if (jo.param[0].scanMode !== undefined)   {
-                var v1 = parseInt(jo.param[0].scanMode);
-                if (st_devScanMode !== v1 || !st_devScaning)  {
-                    st_devScaning = true;
-                    st_devScanMode = v1;
-                    setDevActionView(1);
-                }
+                var v1 = parseInt(jo.param[0].scanMode) + 1;
+                stateView.setDevScanModeView(v1);
             }   else if (jo.param[0].scanTick !== undefined)  {
-                st_devScaning = true;
-                setDevActionView(1, parseInt(jo.param[0].scanTick));
+                stateView.tickforDevActionView(parseInt(jo.param[0].scanTick));
             }
         }
     };
-
     wssocket.onclose = function(event) {
-//#        console.log('websocket close: ' + event.code + ', ' + event.reason);
         wssocket = null;
     };
  });
+
+/*
+//---------------------------------
+var st_devScaning = false, st_devScanMode = 0;
+var n_scantickRefreshHold = 0;
 
 function setGuardStatusView(val)   {
     if (val ===0)   {
@@ -135,14 +141,13 @@ function setGuardStatusView(val)   {
     }
 }
 
-var st_devScaning = false, st_devScanMode = 0;
-var n_scantickRefreshHold = 0;
-
 function setDevActionView(val, param)  {
     if (val ===0)   {
+        st_devScaning = false;
         $("#deviceAction").textbox('setValue','待机状态');
         $("#deviceAction").textbox('textbox').css({background:'#b8eecf', color:'#45872c'});
     }   else if (val ===1)  {
+        st_devScaning = true;
         if (n_scantickRefreshHold >0)  {
             n_scantickRefreshHold--;
         }   else    {
@@ -150,7 +155,7 @@ function setDevActionView(val, param)  {
             if (st_devScanMode ===1)
                 st = st + "S";
             else if (st_devScanMode ===2)
-                st = st + "F";
+                st = st + "M";
             if (param !== undefined) {
                 if (param % 2 ==0)
                     st = st + " # ";
@@ -165,11 +170,36 @@ function setDevActionView(val, param)  {
         n_scantickRefreshHold = 4;
         $("#deviceAction").textbox('setValue','发现标签');
         $("#deviceAction").textbox('textbox').css({background:'rgb(22,22,255)', color:'rgb(255,0,128)'});
-//#        $("#deviceAction").textbox('textbox').css({background:'rgb(225,22,25)', color:'rgb(255,255,68)'});
+    }   else if (val ===3)  {
+        n_scantickRefreshHold = 4;
+        $("#deviceAction").textbox('setValue','控制动作');
+        $("#deviceAction").textbox('textbox').css({background:'rgb(122,122,255)', color:'rgb(247,228,9)'});
     }
 }
 
+function tickforDevActionView(tick)  {
+    if (tick !== undefined)    {
+//        st_devScaning = true;
+        setDevActionView(1, tick);
+    }   else    {
+        if (st_devScaning === true) {       //自动清除扫描状态。仅后备作用
+             if (++n_scantickRefreshHold >6)    {
+                 st_devScaning = false;
+                 setDevActionView(0);
+             }
+         }
+    }
+}
 
+function setDevScanModeView(v1)  {
+    if (st_devScanMode !== v1 || !st_devScaning)  {
+        st_devScaning = true;
+        st_devScanMode = v1;
+        setDevActionView(1);
+    }
+}
+//---------------------------------
+*/
 $(function viewInit()   {
     //runing clock
     $("#genClock").textbox('textbox').css({fontSize: "1.8em", fontWeight:"bold", backgroup: 'transparent',
@@ -213,7 +243,13 @@ $(function viewCtrl()  {
                 if (r){
                     var param = [];
                     param.push(r);
-                    sendCommand({'command':'sysClose', 'param': JSON.stringify(param) });
+                    param.push(_clientId);
+                    sendCommand({'command':'sysClose', 'param': JSON.stringify(param) }, function(dat) {
+                        if (dat.result === true) {
+//                            console.log("sysclosing..");
+                            window.open('about:blank','_self').close();     //这个方法还是有warning的，勉强能用
+                        }
+                    });
                 }
             });
         }
@@ -227,9 +263,7 @@ $(function viewCtrl()  {
     });
     $("#clearPasscard").linkbutton({
         onClick: function() {
-            sendCommand({"command":"clearPasscard"}, function() {
-                    $("#passcards").datalist("load");
-                });
+            sendCommand({"command":"clearPasscard"});
         }
     });
     $("#btnEventsClear").linkbutton({
@@ -269,7 +303,7 @@ $(function viewCtrl()  {
                 comprows.push(sitem);
             }
             if (comprows.length>0)  {
-                $.messager.prompt('关机', '请输入工作密码：', function(r){
+                $.messager.prompt('修改配置', '请输入工作密码：', function(r){
                     if (r){
                         comprows.push({"prgId":"usingpasswd", "value":r});
                         sendCommand({"command":"updateConfigs", "param": JSON.stringify(comprows)}, function(dat) {
@@ -282,12 +316,6 @@ $(function viewCtrl()  {
                         });
                     }
                 });
-/*
-                sendCommand({"command":"updateConfigs", "param": JSON.stringify(comprows)}, function(dat) {
-                    $.messager.alert('执行命令', "命令已发送执行",'info');
-                    wsSendCommand({'command':'getSysInfo','param':[]});                                    
-                });
-                */
             }
         }
     });

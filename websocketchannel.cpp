@@ -54,9 +54,3 @@ WebsocketChannel::WebsocketChannel(QObject *parent) : QObject(parent)
     });
 }
 
-/*
-WebsocketChannel::~WebsocketChannel()
-{
-//    m_channel->deregisterObject(wrapperObj);
-}
-*/

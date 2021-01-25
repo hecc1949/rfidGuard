@@ -18,20 +18,31 @@
 #define GPIO_Board_LED3         (2*32+24)       //GPIOC24   保留
 #define GPIO_ExUart_Power       (28)            //GPIOA28   模块用5V电源开关
 */
+
 //ouput
-#define GPIO_AlarmSound     GPIO_Relay          //GPIOB31
 #define GPIO_AlarmLight     (3*32 + 29)         //GPIOD29, J11.5~6
-#define GPIO_OutRev         (3*32 + 28)         //GPIOD28, J11.7~8
+#define GPIO_AlarmSound     (3*32 + 28)         //GPIOD28, J11.7~8
+#define GPIO_WorkStatus     GPIO_Relay          //GPIOB31
+
 //input
 #define GPIO_AlarmStop      (3*32 + 30)         //GPIOD30, J11.1~2
 #define GPIO_CheckOut       (3*32 + 31)         //GPIOD31, J11.3~4
 
 #define GPIO_ModeIn         (2*32 + 5)          //GPIOC5, JP2.8,不隔离
 //--
-#define GP_AlarmSound_EN    1
-#define GP_AlarmSound_DIS   0
-#define GP_AlarmLigh_EN     0
-#define GP_AlarmLigh_DIS    1
+#define GP_AlarmSound_EN    0       //0有效
+//#define GP_AlarmSound_DIS   1
+#define GP_AlarmLight_EN     0
+//#define GP_AlarmLight_DIS    1
+
+#define GP_WorkStatus_EN    1
+//#define GP_WorkStatus_DIS   0
+
+typedef struct {
+    int gpioNo;
+    int value_en;
+    int direct;
+}   GpioPinDef_t;
 
 class DevWrapper : public QObject
 {
@@ -51,11 +62,12 @@ private:
     InventProxy inventUHF;
     SrcdatFormat srcformat;
     RfidReaderMod *rfidDev = NULL;
-    GpioDev *gpioDev = NULL;
     bool _devActive = false;
+    GpioDev *gpioDev = NULL;
 
     int gpioVal_PassSw;
     int gpioVal_Checkout;
+    QList<GpioPinDef_t> gpioOuts;
 
     bool openHwDevices();
     bool openTagsFinder();

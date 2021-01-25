@@ -26,15 +26,18 @@ schtimer.schemeTimerStart(function(jo) {
     var n_guardStatus = guardStatus;
     if (guardStatus !== jo.schguardStatus && guardStatus !==_guardState.alert) {
         if (guardStatus===_guardState.idle)    {    //空闲状态，在client已连接时可启动监控
-//            if (wsServer !== null)  {
             if (devcon.getClientCount() ===1)   {
-                setTimeout(function()   { runTagFinder(true); }, 100);   //启动监控
+                setTimeout(function()   {
+                    runTagFinder(true);
+                    devcon.doDevCommand("setGpioOut",[0, 1]);
+                }, 100);   //启动监控
                 n_guardStatus = jo.schguardStatus;
             }   //else 将保持状态不变
         }
         else if (guardStatus===_guardState.watch)   {   //监控状态，无条件停止监控, 或临时通行
             if (jo.schguardStatus ===0) {
                 runTagFinder(false);        //停监控
+                devcon.doDevCommand("setGpioOut",[0, 0]);
             }
             n_guardStatus = jo.schguardStatus;      //
         }
@@ -66,7 +69,6 @@ schtimer.schemeTimerStart(function(jo) {
 
 //提供http服务,静态路由
 app.use(express.static(path.join(__dirname,'/view')));
-
 //app.use(bodyparser.json());     //接受json数据类型
 //app.use(bodyparser.urlencoded({extended: false}));      //解析post请求数据
 
@@ -82,12 +84,12 @@ app.get("/configs_json", function(request, res) {
             }
         }
     }
-
+    //屏蔽密码显示
     var elem = jodat.rows.find(function(elem){ if (elem.prgId==="upassword") return (elem); });
     if (elem)   {
         _upassword = elem.value;
         elem.value = "";
-    }
+    }    
     schtimer.schemeCompile(jodat.rows);
     jodat.total = jodat.rows.length;    //
     res.send(JSON.stringify(jodat));
@@ -115,12 +117,12 @@ app.get("/commands", function(req, res) {
         });
     }
     else if (req.query.command==="sysClose") {
-//        if (param.length>0 && param[0] ==="12345" && devcon.geClientCount() ===1) {
-        if (param.length>0 && param[0] === _upassword && devcon.getClientCount() ===1) {
+        if (param.length>0 && param[0] === _upassword && devcon.getClientCount() <=2) {
             devcon.doDevCommand(req.query.command, param, function(jores)   {
                 res.send(JSON.stringify({"result": jores.result}));
             });
         }   else    {
+            console.log("sysClose at"+devcon.getClientCount());
             res.send(JSON.stringify({"result":false}));
         }
     }
@@ -130,11 +132,9 @@ app.get("/commands", function(req, res) {
                 var obj = {"tagId":param[i], "ucount":0, "utime":new Date() };
                 passCards.push(obj);
                 clearAlarms("授权通过", param[i]);
-/*                if (guardStatus === _guardState.alert)  {
-                    clearAlarms("授权通过", param[i]);
-                } */
             }
             res.send(JSON.stringify({"result":true}));
+            devcon.wsSeverNotify({"event": "passcardUpd", "param":[]});
         }   else    {
             res.send(JSON.stringify({"result":false}));
         }
@@ -142,6 +142,7 @@ app.get("/commands", function(req, res) {
     else if (req.query.command === "clearPasscard") {
         passCards.splice(0, passCards.length);
         res.send(JSON.stringify({"result":true}));
+        devcon.wsSeverNotify({"event": "passcardUpd", "param":[]});
     }
     else if (req.query.command === "clearReports") {
         runingEvents.splice(0, runingEvents.length);
@@ -158,15 +159,12 @@ app.get("/commands", function(req, res) {
         reports.saveToCsvFile(runingEvents, filename);
         res.send(JSON.stringify({"result":true, "filename": path.basename(filename) }));
     }
-    else if (req.query.command === "reportEvents") {
+    else if (req.query.command === "reportAlarms") {
         filename = reports.fileNameFromDate("ALM");
         reports.saveToCsvFile(runingEvents, filename);
         res.send(JSON.stringify({"result":true, "filename": path.basename(filename) }));
     }
     else if (req.query.command === "updateConfigs") {
-/*        if (param.length >0)    {
-            updateConfigFile(param);
-        } */
         var valid = false;
         var xid = param.length -1;
         if (xid >0)    {
@@ -248,6 +246,7 @@ function getSysInfos()  {
             sysInfo.push(item);
         });
         sysInfo.push({"name":"guardStatus","value":guardStatus});
+        sysInfo.push({"name":"clientCount","value":devcon.getClientCount() });
         devcon.wsSeverNotify({"event": "gotSysInfos", "param":sysInfo });
     });
 }
@@ -255,6 +254,7 @@ function getSysInfos()  {
 var m_tagFinderRuning = false;
 function runTagFinder(start) {
     var param = [start, 2];
+//#    var param = [start, 4];
     devcon.doDevCommand("runTagFinder", param, function(jores)   {
         if (jores.result === true)  {
             m_tagFinderRuning = jores.data[0].active;
@@ -295,34 +295,36 @@ function addRuningEvent(checkres, joTag)
     else
         ev.reason = "符合安全";
     runingEvents.push(ev);
-    devcon.wsSeverNotify({"event": "tagCheckAcc", "param":[]});
+//    devcon.wsSeverNotify({"event": "tagCheckAcc", "param":[]});
 }
 
-
+var oneshot_AlarmStop = false, oneshot_CheckOut = false;
 function onDeviceEvents(joRes)    {
     var checkres;
     var dt;
     if (joRes.event ==='devMsg')   {
         if (joRes.param[0].AlarmStopReq !== undefined)  {
             if (parseInt(joRes.param[0].AlarmStopReq) !==0)  {
-                clearAlarms("人工关停");
-                devcon.wsSeverNotify({"event": "passcardUpd", "param":[]});
-
-/*                if (guardStatus === _guardState.alert)  {
+                if (!oneshot_AlarmStop) {
                     clearAlarms("人工关停");
-                } */
+                    devcon.wsSeverNotify({"event": "controlAct", "param":[]});
+                    oneshot_AlarmStop = true;
+                    setTimeout(function()   { oneshot_AlarmStop = false; }, 500);
+                }
             }
         }
         else if (joRes.param[0].CheckoutReq !== undefined)  {
             if (parseInt(joRes.param[0].CheckoutReq) !==0)  {
-                doCheckoutOpen();
+                if (!oneshot_CheckOut)   {
+                    doCheckoutOpen();
+                    oneshot_CheckOut = true;
+                    setTimeout(function()   { oneshot_CheckOut = false; }, 500);
+                }
             }
         }
         else if (joRes.param[0].serverClose !== undefined)  {
             console.log("nodejs server close..");
-//            devcon.stopAutoRelink();
             process.exit(parseInt(joRes.param[0].serverClose));
-//            process.exitCode = 11;
         }
         else    {
             devcon.wsSeverNotify(joRes);       //转发消息
@@ -334,6 +336,7 @@ function onDeviceEvents(joRes)    {
         checkres = tagAlarmChecker(joRes.param[0]);
         if (checkres <=0)  {
             addRuningEvent(checkres, joRes.param[0]);
+            devcon.wsSeverNotify({"event": "tagCheckAcc", "param":[]});
         }
     }
     else if (joRes.event === 'tagRepeat')  {
@@ -346,7 +349,7 @@ function onDeviceEvents(joRes)    {
         if (item)   {
             item.prompt = joRes.param[0].hitCount + " 次发现";
             var diff = dt.getTime() - item.lastTime.getTime();
-            if (diff >=4000)    {       //降低数据刷新率
+            if (diff >=2000)    {       //降低数据刷新率
                 item.lastTime = dt;
                 devcon.wsSeverNotify({"event": "tagCheckAcc", "param":[]});
             }
@@ -354,7 +357,10 @@ function onDeviceEvents(joRes)    {
         else {
             checkres = tagAlarmChecker(joRes.param[0]);
             if (checkres <=0)   {
-                addRuningEvent(checkres, joRes.param[0]);
+                addRuningEvent(checkres, joRes.param[0]);   //非报警
+            }
+            if (parseInt(joRes.param[0].hitCount) % 4 ===0) {       //降低数据刷新率
+                devcon.wsSeverNotify({"event": "tagCheckAcc", "param":[]}); //?
             }
         }
     }
@@ -363,23 +369,10 @@ function onDeviceEvents(joRes)    {
 function onWsServerMessage(cmd)   {
     if (cmd.command === 'getSysInfo') {
         getSysInfos();
-
-/* test
-        for(var i=0; i<50; i++) {
-            var ev = new GuardEvent("标签通过");
-            ev.id = i + 1;
-            ev.prompt = "安全位报警";
-            runingEvents.push(ev);
-        }
-*/
     }
     else if (cmd.command === "stopAlarm")    {
         clearAlarms("人工关停");
-        devcon.wsSeverNotify({"event": "passcardUpd", "param":[]});
-
-/*        if (guardStatus === _guardState.alert)  {
-            clearAlarms("人工关停");
-        } */
+        devcon.wsSeverNotify({"event": "controlAct", "param":[]});
     }
     else if (cmd.command === "checkoutOpen") {
         doCheckoutOpen(cmd.param[0]);
@@ -394,23 +387,11 @@ function doCheckoutOpen(minutes)   {
         else
             times1 = minutes;
         schtimer.startCheckOutOpen(times1);
-/*
-        if (guardStatus === _guardState.alert)  {
-            clearAlarms("临时通行");
-        }
-        else    {
-            guardStatus = schtimer.getSchGuardState();
-        }
-*/
-        clearAlarms("临时放行", "-", "限时"+ times1 + "分钟");
+        clearAlarms("临时放行", "", "限时"+ times1 + "分钟");
         guardStatus = schtimer.getSchGuardState();
 
         devcon.wsSeverNotify({"event": "alarmAct", "param":[{'guardStatus':guardStatus }]});
-/*
-        var ev = new GuardEvent("临时通行");
-        ev.prompt = "限时"+ times1 + "分钟";
-        runingEvents.push(ev);
-*/
+        devcon.wsSeverNotify({"event": "controlAct", "param":[]});
     }
 }
 
@@ -468,11 +449,12 @@ function tagAlarmChecker(joTag)    {
             alarmRecords.push(ev);
 
             guardStatus = _guardState.alert;
-//            devwrapper.doCommand("setGpioOut",[1]);
-            devcon.doDevCommand("setGpioOut",[1]);            
+//            devcon.doDevCommand("setGpioOut",[1]);
+            devcon.doDevCommand("setGpioOut",[1, 1]);
             setTimeout(function()   {       //延时开启第2级警报
                 if (guardStatus === _guardState.alert)  {
-                    devcon.doDevCommand("setGpioOut",[2]);
+//                    devcon.doDevCommand("setGpioOut",[2]);
+                    devcon.doDevCommand("setGpioOut",[2, 1]);
                 }
             }, 11000);
 
@@ -498,7 +480,7 @@ function tagAlarmChecker(joTag)    {
 }
 
 function clearAlarms(reason, tagNo, evPrompt) {
-    var selall = (tagNo === undefined);
+    var selall = !(tagNo !== undefined && tagNo.length>3);
     var i=0, cnt1 = 0, cnt2 = 0;
     if (guardStatus === _guardState.alert || tagNo !== undefined)  {
         alarmRecords.forEach(function(rec)   {
@@ -514,7 +496,9 @@ function clearAlarms(reason, tagNo, evPrompt) {
             if (++i === alarmRecords.length)    {       //遍历结束
                 if (cnt1>0 && cnt1 === cnt2)  {
                     guardStatus = schtimer.getSchGuardState();
-                    devcon.doDevCommand("setGpioOut",[0]);
+//                    devcon.doDevCommand("setGpioOut",[0]);
+                    devcon.doDevCommand("setGpioOut",[1, 0]);
+                    devcon.doDevCommand("setGpioOut",[2, 0]);
                     devcon.wsSeverNotify({"event": "alarmAct", "param":[{'guardStatus':guardStatus }]});
                 }
             }
@@ -522,6 +506,7 @@ function clearAlarms(reason, tagNo, evPrompt) {
     }
     //
     var ev = new GuardEvent(reason);
+    ev.id = runingEvents.length +1;
     if (tagNo !== undefined)    {
         ev.identifier = tagNo;
     }
@@ -529,9 +514,7 @@ function clearAlarms(reason, tagNo, evPrompt) {
         ev.prompt = evPrompt;
     }
     runingEvents.push(ev);
-/*    if (guardStatus !== _guardState.alert)  {
-        devcon.wsSeverNotify({"event": "tagCheckAcc", "param":[]});
-    } */
+//    devcon.wsSeverNotify({"event": "tagCheckAcc", "param":[]});
 }
 
 function clearPasscards(dt)   {

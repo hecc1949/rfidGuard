@@ -7,5 +7,6 @@
         <file>res/wifi.png</file>
         <file>res/dialog_ok24.png</file>
         <file>res/close_24g.png</file>
+        <file>res/format_clear_32.png</file>
     </qresource>
 </RCC>

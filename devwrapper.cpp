@@ -81,7 +81,6 @@ bool DevWrapper::openTagsFinder()
 {
     if (rfidDev==NULL || gpioDev==NULL )
         return(false);
-    inventUHF.initInterrogator();      //这里要用到dbstore了
     connect(rfidDev, SIGNAL(cmdResponse(QString, int, int)), this, SLOT(dev_cmdResponse(QString, int, int)), Qt::QueuedConnection);
     connect(rfidDev, SIGNAL(errorResponse(QString, int)), this, SLOT(dev_errMsg(QString, int)), Qt::QueuedConnection);
     connect(rfidDev, SIGNAL(readMemBank(Membank_data_t, int)), this, SLOT(dev_readMemBank(Membank_data_t, int)), Qt::QueuedConnection);
@@ -92,6 +91,8 @@ bool DevWrapper::openTagsFinder()
     connect(&inventUHF, SIGNAL(ChangeScanMode(int)), this, SLOT(onInventChangeMode(int)), Qt::QueuedConnection);
     connect(&inventUHF, SIGNAL(InventUpdate(QByteArray, InventifyRecord_t*, bool)),
             this, SLOT(onInventUpdate(QByteArray, InventifyRecord_t*, bool)), Qt::QueuedConnection);
+//    inventUHF.initInterrogator(true);      //初始配置setBaseMode时cmd有数据发出，应该先connet() cmdResponse信号
+    inventUHF.initInterrogator();      //初始配置setBaseMode时cmd有数据发出，应该先connet() cmdResponse信号
 
     return(true);
 }
@@ -101,7 +102,8 @@ void DevWrapper::dev_cmdResponse(QString info, int cmd, int status)      //slot
     QString s1 = rfidDev->packDumpInfo(0, info, cmd, status);
     if (s1 == info)
     {
-        qDebug()<<info.toLatin1();
+//        qDebug()<<info.toLatin1();
+        qDebug()<<"HwCmd:"<<cmd<<" Ack:"<<info<<" status:"<<status;
     }
 }
 void DevWrapper::dev_errMsg(QString info, int errCode)       //slot
@@ -109,8 +111,9 @@ void DevWrapper::dev_errMsg(QString info, int errCode)       //slot
     QString s1 = rfidDev->packDumpInfo(1, info, errCode, 0);
     if (s1 ==info)
     {
-        qDebug()<<info;
+        qDebug()<<info.toLatin1();
     }
+//    qDebug()<<"HwErr:"<<info<<" errCode:"<<errCode;
 }
 void DevWrapper::dev_readMemBank(Membank_data_t bankdat, int info)   //slot
 {
@@ -136,6 +139,7 @@ QJsonObject DevWrapper::doCommand(QString cmd, QJsonArray param)
         if (param.count()>1)
             mode = param[1].toInt();
         res = inventUHF.runInventify(start, mode);     //返回命令是否执行成功
+//        res = inventUHF.runInventify(start, 4);
 #endif
         if (res)
             _devActive = start;     //转换成是否再扫描状态
@@ -148,7 +152,7 @@ QJsonObject DevWrapper::doCommand(QString cmd, QJsonArray param)
         joRes.insert("data", dat);
     }
     else if (cmd == "setGpioOut")   {
-        if (param.count() >0)
+/*        if (param.count() >0)
         {
             int sel = param[0].toInt();
             if (sel ==0)
@@ -165,6 +169,21 @@ QJsonObject DevWrapper::doCommand(QString cmd, QJsonArray param)
                 gpioDev->setGpio(GPIO_AlarmSound, GP_AlarmSound_EN);
                 gpioDev->setGpio(GPIO_AlarmLight, GP_AlarmLigh_EN);
             }
+        } */
+        if (param.count() >1)
+        {
+            int id = param[0].toInt();
+            int val = param[1].toInt();
+            if (id >=0 && id<gpioOuts.count())
+            {
+                if (val != 0)
+                    val = gpioOuts[id].value_en;
+                else
+                    val = ~(gpioOuts[id].value_en) & 0x01;
+                gpioDev->setGpio(gpioOuts[id].gpioNo, val);
+            }
+            else
+                joRes["result"] = false;
         }
         else
         {
@@ -183,6 +202,11 @@ QJsonObject DevWrapper::doCommand(QString cmd, QJsonArray param)
     else if (cmd == "sysClose")
     {
 //        mainwin->close();
+//        qDebug()<<"sys close request from:" <<param[1].toInt();
+        if (param[1].toInt() !=1)
+        {
+            mainwin->closeWebPage();
+        }
         QTimer::singleShot(100, mainwin, SLOT(close()));        //延时关闭，直接关会有异常
     }
     else if (cmd == "getSysInfo")
@@ -214,6 +238,10 @@ QJsonArray DevWrapper::getSysInfo()
 //    jRow["value"] = "127.0.0.1";
     joRes.append(jRow);
 
+//    ((Dev_R200*)rfidDev)->checkModule();
+//    QString s1 = ((Dev_R200*)rfidDev)->getModuleHwInfo();   //Hw:QM100 30dBm V1.3.1 Fw:V2.4.3 MF:MagicRf
+//    qDebug()<<"getModuleHwInfo:"<<s1;
+
     return(joRes);
 }
 
@@ -227,6 +255,7 @@ void DevWrapper::onInventChangeMode(int mode)
     param.append(jo);
     joRes["param"] = param;
 
+//    qDebug()<<"scanMode change:"<<mode;
     emit(onDeviceEvent(joRes));
 }
 
@@ -276,9 +305,29 @@ void DevWrapper::onInventUpdate(QByteArray epc, InventifyRecord_t* pRec, bool is
 
 void DevWrapper::gpioInit()
 {
-    gpioDev->setGpio(GPIO_AlarmSound, GP_AlarmSound_DIS);
+/*    gpioDev->setGpio(GPIO_AlarmSound, GP_AlarmSound_DIS);
     gpioDev->setGpio(GPIO_AlarmLight, GP_AlarmLigh_DIS);
     gpioDev->setGpio(GPIO_OutRev, 1);       //0有效
+*/
+
+    GpioPinDef_t pin;
+    pin.gpioNo = GPIO_WorkStatus;
+    pin.value_en = GP_WorkStatus_EN;
+    pin.direct = 0;
+    gpioOuts.append(pin);
+
+    pin.gpioNo = GPIO_AlarmLight;
+    pin.value_en = GP_AlarmSound_EN;
+    gpioOuts.append(pin);
+
+    pin.gpioNo = GPIO_AlarmSound;
+    pin.value_en = GP_AlarmSound_EN;
+    gpioOuts.append(pin);
+
+    for(int i=0; i<3; i++)
+    {
+        gpioDev->setGpio(gpioOuts[i].gpioNo, ~(gpioOuts[i].value_en) & 0x01);
+    }
 
     gpioDev->setGpioEdgeTrig(GPIO_AlarmStop, 0);
     gpioDev->setGpioEdgeTrig(GPIO_CheckOut);
@@ -327,9 +376,15 @@ void DevWrapper::gpioInit()
 
 void DevWrapper::gpioDeInit()
 {
-    gpioDev->setGpio(GPIO_AlarmSound, GP_AlarmSound_DIS);
+/*    gpioDev->setGpio(GPIO_AlarmSound, GP_AlarmSound_DIS);
     gpioDev->setGpio(GPIO_AlarmLight, GP_AlarmLigh_DIS);
     gpioDev->setGpio(GPIO_OutRev, 1);       //0有效
+*/
+    for(int i=0; i<3; i++)
+    {
+        gpioDev->setGpio(gpioOuts[i].gpioNo, ~(gpioOuts[i].value_en) & 0x01);
+    }
+
     disconnect(gpioDev, SIGNAL(gpioPinTrig(int,int)));
 }
 

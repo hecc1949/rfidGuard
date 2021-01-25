@@ -9,6 +9,7 @@
 #include "webpageview.h"
 #include "networkchecker.h"
 #include "localtoolbar.h"
+#include <QFileSystemWatcher>
 
 //编译配置
 #ifndef ARM
@@ -31,6 +32,9 @@ public:
 
     QString m_tfcardPath;
     QString m_udiskPath;
+    void closeWebPage() {
+        m_webview->close();
+    }
 protected:
     void closeEvent(QCloseEvent *event);
 
@@ -47,6 +51,7 @@ private:
     QThread netmgrThread;
 
     LocalToolBar *localTools;
+    QFileSystemWatcher fsWatcher;
 
     void loadWebView();
     void loadNodejsServer();
